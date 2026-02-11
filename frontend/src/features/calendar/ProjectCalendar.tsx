@@ -5,7 +5,7 @@ import { apiGet, apiPost, apiPatch, apiDelete, apiUpload, uploadsUrl } from "@/a
 import type { DiaryEntry, ProjectEvent } from "@/types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { CalendarDays, FileText, MessageCircle, Plus, Video, Users, Calendar, X, ImagePlus, Send, Trash2 } from "lucide-react";
+import { CalendarDays, FileText, MessageCircle, Plus, Video, Users, Calendar, X, ImagePlus, Send, Trash2, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 
 const EVENT_TYPES = [
   { value: "call", label: "Call", icon: Video },
@@ -152,6 +152,7 @@ export function ProjectCalendar() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [showAddChoice, setShowAddChoice] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<ProjectEvent | null>(null);
   const [savingEvent, setSavingEvent] = useState(false);
   const [eventError, setEventError] = useState<string | null>(null);
   const [eventForm, setEventForm] = useState({ date: "", time: "", type: "meeting" as string, name: "", notes: "" });
@@ -159,6 +160,16 @@ export function ProjectCalendar() {
   const [diaryForm, setDiaryForm] = useState({ date: "", content: "" });
   const [savingDiary, setSavingDiary] = useState(false);
   const [diaryError, setDiaryError] = useState<string | null>(null);
+  const [expandedEntryIds, setExpandedEntryIds] = useState<Set<string>>(new Set());
+
+  const toggleEntryExpanded = (id: string) => {
+    setExpandedEntryIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!projectId) return;
@@ -198,6 +209,10 @@ export function ProjectCalendar() {
       .catch(console.error)
       .finally(() => setLoadingContent(false));
   }, [projectId, selectedDate?.toISOString()]);
+
+  useEffect(() => {
+    setExpandedEntryIds(new Set());
+  }, [selectedDate?.toISOString()]);
 
   const hasEntry = (date: Date) => daysWithEntries.includes(format(date, "yyyy-MM-dd"));
   const hasEvent = (date: Date) => daysWithEvents.includes(format(date, "yyyy-MM-dd"));
@@ -240,6 +255,7 @@ export function ProjectCalendar() {
 
   const openEventForm = () => {
     setShowAddChoice(false);
+    setEditingEvent(null);
     setEventError(null);
     setEventForm((f) => ({
       ...f,
@@ -250,6 +266,35 @@ export function ProjectCalendar() {
       notes: "",
     }));
     setShowEventForm(true);
+  };
+
+  const openEditEvent = (ev: ProjectEvent) => {
+    setEventError(null);
+    setEventForm({
+      date: ev.date.slice(0, 10),
+      time: ev.time ?? "",
+      type: ev.type,
+      name: ev.name,
+      notes: ev.notes ?? "",
+    });
+    setEditingEvent(ev);
+    setShowEventForm(true);
+  };
+
+  const closeEventForm = () => {
+    setShowEventForm(false);
+    setEditingEvent(null);
+  };
+
+  const deleteEvent = async (ev: ProjectEvent) => {
+    if (!projectId || !confirm("Eliminare questo evento?")) return;
+    try {
+      await apiDelete(`/projects/${projectId}/events/${ev.id}`);
+      await refetchContentForDay();
+      await refetchCalendarDays();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const openDiaryForm = () => {
@@ -349,19 +394,26 @@ export function ProjectCalendar() {
     }
     setSavingEvent(true);
     try {
-      await apiPost(`/projects/${projectId}/events`, {
+      const payload = {
         date,
-        time: eventForm.time.trim() || undefined,
+        time: eventForm.time.trim() || null,
         type: eventForm.type,
         name,
-        notes: eventForm.notes.trim() || undefined,
-      });
-      setShowEventForm(false);
-      if (selectedDate && date === format(selectedDate, "yyyy-MM-dd")) {
-        const events = await apiGet<ProjectEvent[]>(`/projects/${projectId}/events/by-date?date=${date}`);
-        setEventsForDay(events);
+        notes: eventForm.notes.trim() || null,
+      };
+      if (editingEvent) {
+        await apiPatch(`/projects/${projectId}/events/${editingEvent.id}`, payload);
+        setEditingEvent(null);
+      } else {
+        await apiPost(`/projects/${projectId}/events`, {
+          ...payload,
+          time: payload.time ?? undefined,
+          notes: payload.notes ?? undefined,
+        });
       }
-      setDaysWithEvents((prev) => (prev.includes(date) ? prev : [...prev, date].sort()));
+      setShowEventForm(false);
+      await refetchContentForDay();
+      await refetchCalendarDays();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Impossibile salvare l'evento. Riprova.";
       setEventError(message);
@@ -463,47 +515,97 @@ export function ProjectCalendar() {
                                 key={ev.id}
                                 className="rounded-xl border border-sky-200 dark:border-sky-800/50 bg-sky-50/60 dark:bg-sky-900/20 p-4"
                               >
-                                <div className="flex items-center gap-2 text-sky-700 dark:text-sky-300 font-medium">
-                                  {(() => {
-                                    const T = EVENT_TYPES.find((t) => t.value === ev.type)?.icon ?? Calendar;
-                                    return <T className="w-4 h-4 shrink-0" />;
-                                  })()}
-                                  {ev.name}
-                                  {ev.time && (
-                                    <span className="text-sm font-normal text-sky-600 dark:text-sky-400">
-                                      · {ev.time}
-                                    </span>
-                                  )}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 text-sky-700 dark:text-sky-300 font-medium">
+                                      {(() => {
+                                        const T = EVENT_TYPES.find((t) => t.value === ev.type)?.icon ?? Calendar;
+                                        return <T className="w-4 h-4 shrink-0" />;
+                                      })()}
+                                      {ev.name}
+                                      {ev.time && (
+                                        <span className="text-sm font-normal text-sky-600 dark:text-sky-400">
+                                          · {ev.time}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {ev.notes && (
+                                      <p className="mt-2 text-sm text-[var(--accent-soft)] whitespace-pre-wrap">{ev.notes}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditEvent(ev)}
+                                      className="p-2 rounded-lg text-sky-600 dark:text-sky-400 hover:bg-sky-200/50 dark:hover:bg-sky-800/50"
+                                      aria-label="Modifica evento"
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => deleteEvent(ev)}
+                                      className="p-2 rounded-lg text-[var(--muted)] hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30"
+                                      aria-label="Elimina evento"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
-                                {ev.notes && (
-                                  <p className="mt-2 text-sm text-[var(--accent-soft)] whitespace-pre-wrap">{ev.notes}</p>
-                                )}
                               </li>
                             ))}
                           </ul>
                         </div>
                       )}
 
-                      {/* Resoconti (card editabili: testo, immagini, commenti) */}
+                      {/* Resoconti (apribili: anteprima chiusa, clic per aprire contenuto) */}
                       {entriesForDay.length > 0 && (
                         <div>
                           <p className="flex items-center gap-2 text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-3">
                             <FileText className="w-3.5 h-3.5" />
                             Resoconti diario
                           </p>
-                          <ul className="space-y-5">
-                            {entriesForDay.map((entry) => (
-                              <li key={entry.id}>
-                                <DiaryEntryCard
-                                  entry={entry}
-                                  onUpdateContent={(content) => updateDiaryContent(entry, content)}
-                                  onAddImage={(file) => addDiaryImage(entry.id, file)}
-                                  onRemoveImage={(imageId) => removeDiaryImage(entry.id, imageId)}
-                                  onAddComment={(content, clear) => addDiaryComment(entry.id, content, clear)}
-                                  onDelete={() => deleteDiaryEntry(entry.id)}
-                                />
-                              </li>
-                            ))}
+                          <ul className="space-y-2">
+                            {entriesForDay.map((entry) => {
+                              const isExpanded = expandedEntryIds.has(entry.id);
+                              const preview = entry.content?.trim().slice(0, 60);
+                              const nImages = entry.images?.length ?? 0;
+                              const nComments = entry.comments?.length ?? 0;
+                              const mediaLabel = [nImages > 0 && `${nImages} imm.`, nComments > 0 && `${nComments} comm.`].filter(Boolean).join(" · ");
+                              return (
+                                <li key={entry.id} className="rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-900/10 overflow-hidden">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleEntryExpanded(entry.id)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
+                                  >
+                                    <span className="shrink-0 text-amber-600 dark:text-amber-400">
+                                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                    </span>
+                                    <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-[var(--accent)] text-sm">Resoconto</p>
+                                      <p className="text-xs text-[var(--muted)] truncate">
+                                        {preview ? `${preview}${(entry.content?.length ?? 0) > 60 ? "…" : ""}` : "Nessun testo"}
+                                        {mediaLabel && ` · ${mediaLabel}`}
+                                      </p>
+                                    </div>
+                                  </button>
+                                  {isExpanded && (
+                                    <div className="border-t border-amber-200 dark:border-amber-800/50 p-4">
+                                      <DiaryEntryCard
+                                        entry={entry}
+                                        onUpdateContent={(content) => updateDiaryContent(entry, content)}
+                                        onAddImage={(file) => addDiaryImage(entry.id, file)}
+                                        onRemoveImage={(imageId) => removeDiaryImage(entry.id, imageId)}
+                                        onAddComment={(content, clear) => addDiaryComment(entry.id, content, clear)}
+                                        onDelete={() => deleteDiaryEntry(entry.id)}
+                                      />
+                                    </div>
+                                  )}
+                                </li>
+                              );
+                            })}
                           </ul>
                         </div>
                       )}
@@ -636,16 +738,16 @@ export function ProjectCalendar() {
         </div>
       )}
 
-      {/* Modal aggiungi evento */}
+      {/* Modal nuovo / modifica evento */}
       {showEventForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowEventForm(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={closeEventForm}>
           <div
             className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-xl max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-[var(--accent)]">Nuovo evento</h3>
-              <button type="button" onClick={() => setShowEventForm(false)} className="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--muted)]">
+              <h3 className="font-semibold text-[var(--accent)]">{editingEvent ? "Modifica evento" : "Nuovo evento"}</h3>
+              <button type="button" onClick={closeEventForm} className="p-2 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--muted)]">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -717,7 +819,7 @@ export function ProjectCalendar() {
                 >
                   {savingEvent ? "Salvataggio..." : "Salva"}
                 </button>
-                <button type="button" onClick={() => setShowEventForm(false)} className="px-4 py-2 rounded-lg bg-[var(--surface-hover)] text-[var(--accent)]">
+                <button type="button" onClick={closeEventForm} className="px-4 py-2 rounded-lg bg-[var(--surface-hover)] text-[var(--accent)]">
                   Annulla
                 </button>
               </div>
