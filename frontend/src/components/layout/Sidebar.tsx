@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useParams, Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Calendar, Settings, FolderKanban, Plus, Trash2, X, ClipboardList, Pencil } from "lucide-react";
+import { LayoutDashboard, Calendar, Settings, FolderKanban, Plus, Trash2, X, ClipboardList, Pencil } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 
 const navItems = [
   { to: "summary", label: "Riepilogo", icon: ClipboardList },
   { to: "board", label: "Board", icon: LayoutDashboard },
-  { to: "diary", label: "Diario", icon: BookOpen },
   { to: "calendar", label: "Calendario", icon: Calendar },
   { to: "config", label: "Configurazione", icon: Settings },
 ];

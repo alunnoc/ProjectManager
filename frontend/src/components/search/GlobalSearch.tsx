@@ -133,7 +133,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
                     {results.diary.map((e) => (
                       <li key={e.id}>
                         <Link
-                          to={`/project/${e.projectId}/diary`}
+                          to={`/project/${e.projectId}/calendar`}
                           onClick={onClose}
                           className="block p-3 rounded-lg bg-[var(--surface-hover)] hover:ring-2 ring-indigo-400 transition-all"
                         >
