@@ -12,9 +12,10 @@ datasource db {
 
 // ============ PROGETTI ============
 model Project {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
-  createdAt DateTime @default(now())
+  t0Date    DateTime? @db.Date // Data di inizio progetto (T0) per il calcolo delle date relative
+  createdAt DateTime  @default(now())
 
   columns        BoardColumn[]
   tasks          Task[]
@@ -23,34 +24,65 @@ model Project {
   projectLinks   ProjectLink[]
   phases         ProjectPhase[]
   workPackages   WorkPackage[]
+  deliverables   ProjectDeliverable[]
 }
 
 // ============ FASI E WORK PACKAGE ============
 model ProjectPhase {
-  id          String    @id @default(cuid())
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  name        String
-  sortOrder   Int       @default(0)
-  startDate   DateTime? @db.Date
-  endDate     DateTime? @db.Date
-  createdAt   DateTime  @default(now())
+  id                 String    @id @default(cuid())
+  projectId          String
+  project            Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name               String
+  sortOrder          Int       @default(0)
+  startDate          DateTime? @db.Date
+  endDate            DateTime? @db.Date
+  startDateRelative  String?   // es. "T0", "T0+3mesi" (per ricalcolo se cambia T0)
+  endDateRelative    String?
+  createdAt          DateTime  @default(now())
 
-  workPackages WorkPackage[]
+  workPackages  WorkPackage[]
   tasks        Task[]
+  deliverables ProjectDeliverable[]
 }
 
 model WorkPackage {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  phaseId   String?
-  phase     ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
-  name      String
-  sortOrder Int     @default(0)
-  createdAt DateTime @default(now())
+  id                 String    @id @default(cuid())
+  projectId          String
+  project            Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phaseId            String?
+  phase              ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  name               String
+  sortOrder          Int        @default(0)
+  startDate          DateTime?  @db.Date
+  endDate            DateTime?  @db.Date
+  startDateRelative  String?
+  endDateRelative    String?
+  createdAt          DateTime   @default(now())
 
-  tasks Task[]
+  tasks        Task[]
+  deliverables ProjectDeliverable[]
+}
+
+// ============ DELIVERABLE (documenti e output per fase/WP) ============
+model ProjectDeliverable {
+  id             String   @id @default(cuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phaseId        String?
+  phase          ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  workPackageId  String?
+  workPackage    WorkPackage? @relation(fields: [workPackageId], references: [id], onDelete: Cascade)
+  type            String   // document | block_diagram | prototype | report | other
+  title           String
+  description     String?
+  dueDate         DateTime? @db.Date
+  dueDateRelative String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  @@index([projectId])
+  @@index([phaseId])
+  @@index([workPackageId])
 }
 
 // ============ CONFIGURAZIONE PROGETTO (sezioni + link) ============

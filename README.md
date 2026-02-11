@@ -94,6 +94,7 @@ I dati si perdono solo se cancelli il database, la cartella `backend/uploads`, o
 - **Diario**: resoconti giornalieri con testo, immagini e commenti.
 - **Calendario**: vista mensile con giorni che hanno resoconti evidenziati; clic su un giorno per vedere i resoconti.
 - **Configurazione**: sezioni per progetto (Risorse e link, Repository, Documentazione, Altro). In ogni sezione puoi aggiungere link o solo nomi (es. repository interno).
+- **Riepilogo**: analytics, scadenze task, fasi, work package e **deliverable** (documenti/block diagram/prototipi per fase e WP). **Importa da JSON**: carica un file JSON generato da un’AI per creare in automatico fasi, WP e deliverable (vedi `docs/PROMPT_AI_JSON_PROGETTO.md`).
 - **Ricerca globale**: full-text su task, commenti, resoconti e nomi immagini (dalla barra in alto).
 - **Progetti**: creazione, eliminazione, evidenziazione del progetto attivo nella sidebar. Dark mode (icona luna/sole in header).
 

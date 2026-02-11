@@ -1,0 +1,126 @@
+{
+"projectName": "O-STEP",
+"phases": [
+{
+"name": "Product Development Phase",
+"startDate": "2025-01-01",
+"endDate": "2026-08-31",
+"deliverables": [
+{
+"type": "prototype",
+"title": "Engineering Model (EM)",
+"description": "Development and test of the Engineering Model of O-STEP",
+"dueDate": "2026-08-31"
+},
+{
+"type": "prototype",
+"title": "Structural and Thermal Model (STM)",
+"description": "Development of the STM including associated EGSE",
+"dueDate": "2026-08-31"
+},
+{
+"type": "other",
+"title": "Electrical Ground Support Equipment (EGSE)",
+"description": "EGSE supporting STM and EM development and test activities",
+"dueDate": "2026-08-31"
+}
+]
+}
+],
+"workPackages": [
+{
+"name": "WP1 - Requirements and Architecture Definition",
+"phaseName": "Product Development Phase",
+"startDate": "2025-01-01",
+"endDate": "2025-06-30",
+"deliverables": [
+{
+"type": "document",
+"title": "System Requirements Document",
+"description": "Definition of system and user requirements up to Requirements Review",
+"dueDate": "2025-06-30"
+},
+{
+"type": "block_diagram",
+"title": "System Architecture Definition",
+"description": "High-level architecture and design definition up to Requirements Review",
+"dueDate": "2025-06-30"
+}
+]
+},
+{
+"name": "WP2 - Detailed Design up to CDR",
+"phaseName": "Product Development Phase",
+"startDate": "2025-07-01",
+"endDate": "2026-02-28",
+"deliverables": [
+{
+"type": "document",
+"title": "Critical Design Review Data Package",
+"description": "Complete design documentation up to CDR",
+"dueDate": "2026-02-28"
+}
+]
+},
+{
+"name": "WP3 - EM Development and Test",
+"phaseName": "Product Development Phase",
+"startDate": "2026-03-01",
+"endDate": "2026-08-31",
+"deliverables": [
+{
+"type": "prototype",
+"title": "Engineering Model (EM)",
+"description": "Integrated and tested Engineering Model of O-STEP",
+"dueDate": "2026-08-31"
+},
+{
+"type": "report",
+"title": "EM Test Report",
+"description": "Report of EM functional and performance test campaign",
+"dueDate": "2026-08-31"
+}
+]
+},
+{
+"name": "WP4 - STM Development and Qualification",
+"phaseName": "Product Development Phase",
+"startDate": "2026-03-01",
+"endDate": "2026-08-31",
+"deliverables": [
+{
+"type": "prototype",
+"title": "Structural and Thermal Model (STM)",
+"description": "Manufactured STM for structural and thermal verification",
+"dueDate": "2026-08-31"
+},
+{
+"type": "report",
+"title": "Qualification Test Report",
+"description": "Report of environmental and qualification test campaign",
+"dueDate": "2026-08-31"
+}
+]
+},
+{
+"name": "WP5 - EEE Assembly Qualification",
+"phaseName": "Product Development Phase",
+"startDate": "2025-07-01",
+"endDate": "2026-04-30",
+"deliverables": [
+{
+"type": "document",
+"title": "EEE Parts Assembly Qualification Plan",
+"description": "Qualification plan for EEE parts assembly processes",
+"dueDate": "2025-09-30"
+},
+{
+"type": "report",
+"title": "EEE Assembly Qualification Report",
+"description": "Report on qualification of EEE assembly processes",
+"dueDate": "2026-04-30"
+}
+]
+}
+]
+}

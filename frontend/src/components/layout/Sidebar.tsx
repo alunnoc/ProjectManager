@@ -4,10 +4,10 @@ import { useAppStore } from "@/store/useAppStore";
 import { useEffect } from "react";
 
 const navItems = [
+  { to: "summary", label: "Riepilogo", icon: ClipboardList },
   { to: "board", label: "Board", icon: LayoutDashboard },
   { to: "diary", label: "Diario", icon: BookOpen },
   { to: "calendar", label: "Calendario", icon: Calendar },
-  { to: "summary", label: "Riepilogo", icon: ClipboardList },
   { to: "config", label: "Configurazione", icon: Settings },
 ];
 

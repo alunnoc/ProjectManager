@@ -132,8 +132,17 @@ export interface SectionTypeOption {
   label: string;
 }
 
+export interface ProjectDeliverable {
+  id: string;
+  type: string; // document | block_diagram | prototype | report | other
+  title: string;
+  description: string | null;
+  dueDate: string | null;
+  sortOrder: number;
+}
+
 export interface ProjectSummary {
-  project: { id: string; name: string };
+  project: { id: string; name: string; t0Date?: string | null };
   analytics: {
     totalTasks: number;
     byColumn: { id: string; name: string; count: number }[];
@@ -165,8 +174,17 @@ export interface ProjectSummary {
     sortOrder: number;
     startDate: string | null;
     endDate: string | null;
+    startDateRelative?: string | null;
+    endDateRelative?: string | null;
     taskCount: number;
-    workPackages: Array<{ id: string; name: string; sortOrder: number; taskCount: number }>;
+    deliverables?: ProjectDeliverable[];
+    workPackages: Array<{
+      id: string;
+      name: string;
+      sortOrder: number;
+      taskCount: number;
+      deliverables?: ProjectDeliverable[];
+    }>;
   }>;
   workPackages: Array<{
     id: string;
@@ -175,5 +193,6 @@ export interface ProjectSummary {
     phaseId: string | null;
     phase?: ProjectPhase | null;
     taskCount: number;
+    deliverables?: ProjectDeliverable[];
   }>;
 }

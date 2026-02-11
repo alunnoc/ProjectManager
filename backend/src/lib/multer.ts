@@ -29,3 +29,9 @@ export const upload = multer({
   fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 });
+
+// Per import JSON: solo memoria, nessun filtro tipo (max 2 MB)
+export const uploadJson = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
