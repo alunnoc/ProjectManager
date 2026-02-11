@@ -1,5 +1,6 @@
 node_modules/
 dist/
 .env
+client/
 uploads/*
 !uploads/.gitkeep

@@ -136,6 +136,12 @@ Il progetto è sotto Git. Per salvare il codice su GitHub:
 
 ---
 
+## Deploy su server aziendale
+
+Per installare l'applicazione su un server in azienda (un solo host, raggiungibile dalla rete interna) vedi la guida **[docs/DEPLOY.md](docs/DEPLOY.md)**. In sintesi: build del frontend, copia in `backend/client`, configurazione `.env`, migrazioni Prisma e avvio del backend (anche con systemd o pm2).
+
+---
+
 ## Note
 
 - Il frontend in sviluppo usa il proxy Vite verso `/api` e `/uploads`, quindi deve girare insieme al backend per funzionare.

@@ -63,6 +63,16 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });
 });
 
+// In produzione: servire il frontend (build React) e fallback SPA per il routing
+if (process.env.NODE_ENV === "production") {
+  const clientDir = path.join(__dirname, "..", "client");
+  app.use(express.static(clientDir));
+  app.get("*", (req, res) => {
+    if (req.path.startsWith("/api")) return res.status(404).json({ error: "Not found" });
+    res.sendFile(path.join(clientDir, "index.html"));
+  });
+}
+
 // Error handler globale
 app.use(errorHandler);
 
