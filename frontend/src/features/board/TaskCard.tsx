@@ -1,0 +1,90 @@
+import { useDrag } from "react-dnd";
+import { useParams } from "react-router-dom";
+import { GripVertical, MessageSquare, Paperclip, Calendar } from "lucide-react";
+import { format, isPast } from "date-fns";
+import { it } from "date-fns/locale";
+import type { Task } from "@/types";
+import { TASK_TYPE } from "./ProjectBoard";
+import { TaskDetailModal } from "./TaskDetailModal";
+import { useState } from "react";
+
+interface TaskCardProps {
+  task: Task;
+  index: number;
+  onMove: (targetColumnId: string, targetIndex: number) => void;
+  onUpdate: () => void;
+}
+
+export function TaskCard({ task, index, onMove, onUpdate }: TaskCardProps) {
+  const { projectId } = useParams<{ projectId: string }>();
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const [{ isDragging }, drag, preview] = useDrag({
+    type: TASK_TYPE,
+    item: { id: task.id, columnId: task.columnId, index },
+    collect: (monitor) => ({ isDragging: monitor.isDragging() }),
+  });
+
+  const commentsCount = task.comments?.length ?? 0;
+  const attachmentsCount = task.attachments?.length ?? 0;
+  const hasDueDate = task.dueDate != null;
+  const overdue = hasDueDate && isPast(new Date(task.dueDate!));
+
+  return (
+    <>
+      <div
+        ref={(node) => {
+          drag(node);
+          preview(node);
+        }}
+        className={`rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 cursor-grab active:cursor-grabbing transition-shadow hover:shadow-md ${
+          isDragging ? "opacity-50 shadow-lg" : ""
+        }`}
+        onClick={() => setDetailOpen(true)}
+      >
+        <div className="flex items-start gap-2">
+          <GripVertical className="w-4 h-4 text-[var(--muted)] shrink-0 mt-0.5" />
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-[var(--accent)] line-clamp-2">{task.title}</p>
+            {task.description && (
+              <p className="text-sm text-[var(--muted)] line-clamp-2 mt-1">
+                {task.description}
+              </p>
+            )}
+            <div className="flex items-center flex-wrap gap-2 mt-2 text-xs text-[var(--muted)]">
+              {hasDueDate && (
+                <span
+                  className={`flex items-center gap-1 ${overdue ? "text-red-600 dark:text-red-400 font-medium" : ""}`}
+                  title={overdue ? "Scaduta" : "Scadenza"}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  {format(new Date(task.dueDate!), "d MMM yyyy", { locale: it })}
+                </span>
+              )}
+              {commentsCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  {commentsCount}
+                </span>
+              )}
+              {attachmentsCount > 0 && (
+                <span className="flex items-center gap-1">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  {attachmentsCount}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      {projectId && detailOpen && (
+        <TaskDetailModal
+          projectId={projectId}
+          task={task}
+          onClose={() => setDetailOpen(false)}
+          onUpdate={onUpdate}
+        />
+      )}
+    </>
+  );
+}

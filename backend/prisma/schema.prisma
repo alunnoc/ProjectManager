@@ -1,0 +1,159 @@
+// Gestione Progetti - Schema Prisma
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ PROGETTI ============
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  columns        BoardColumn[]
+  tasks          Task[]
+  diaryEntries   DiaryEntry[]
+  configSections ProjectConfigSection[]
+  projectLinks   ProjectLink[]
+  phases         ProjectPhase[]
+  workPackages   WorkPackage[]
+}
+
+// ============ FASI E WORK PACKAGE ============
+model ProjectPhase {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  sortOrder   Int       @default(0)
+  startDate   DateTime? @db.Date
+  endDate     DateTime? @db.Date
+  createdAt   DateTime  @default(now())
+
+  workPackages WorkPackage[]
+  tasks        Task[]
+}
+
+model WorkPackage {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phaseId   String?
+  phase     ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  name      String
+  sortOrder Int     @default(0)
+  createdAt DateTime @default(now())
+
+  tasks Task[]
+}
+
+// ============ CONFIGURAZIONE PROGETTO (sezioni + link) ============
+// Sezione = sottotab (es. "Risorse e link", "Repository", tipo da elenco o personalizzato)
+model ProjectConfigSection {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String   // nome visibile della sezione/tab
+  typeSlug  String?  // da elenco: "links" | "repo" | "docs" | null = personalizzato
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  links ProjectLink[]
+}
+
+model ProjectLink {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sectionId String
+  section   ProjectConfigSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  label     String
+  url       String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+}
+
+// ============ BOARD KANBAN ============
+model BoardColumn {
+  id        String   @id @default(cuid())
+  name      String
+  order     Int      @default(0)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+// ============ TASK ============
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  order       Int      @default(0)
+  columnId    String
+  column      BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  startDate   DateTime? @db.Date
+  dueDate     DateTime? @db.Date
+  phaseId     String?
+  phase       ProjectPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  workPackageId String?
+  workPackage WorkPackage? @relation(fields: [workPackageId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  comments    TaskComment[]
+  attachments TaskAttachment[]
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  filename  String
+  path      String
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedAt DateTime @default(now())
+}
+
+// ============ DIARIO ============
+model DiaryEntry {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  content   String?
+  createdAt DateTime @default(now())
+
+  images   DiaryImage[]
+  comments DiaryComment[]
+}
+
+model DiaryImage {
+  id           String     @id @default(cuid())
+  diaryEntryId String
+  diaryEntry   DiaryEntry @relation(fields: [diaryEntryId], references: [id], onDelete: Cascade)
+  filename     String
+  path         String
+  uploadedAt   DateTime   @default(now())
+}
+
+model DiaryComment {
+  id           String     @id @default(cuid())
+  content      String
+  diaryEntryId String
+  diaryEntry   DiaryEntry @relation(fields: [diaryEntryId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+}

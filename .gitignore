@@ -1,0 +1,40 @@
+# Dipendenze
+node_modules/
+
+# Environment (mai committare segreti)
+.env
+.env.local
+.env.*.local
+
+# Build / output
+dist/
+build/
+*.tsbuildinfo
+
+# Upload (file caricati dagli utenti)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Log e cache
+*.log
+npm-debug.log*
+.npm
+.cache
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# File temporanei
+**/Untitled
+**/Untitled*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma
+backend/node_modules/
