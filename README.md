@@ -112,6 +112,29 @@ Il frontend è configurato con `vite --host` quindi è in ascolto sulla rete loc
 
 ---
 
+## Repository Git / GitHub
+
+Il progetto è sotto Git. Per salvare il codice su GitHub:
+
+1. **Crea un nuovo repository** su [github.com](https://github.com) (New repository). Scegli un nome, es. `GestioneProgetti`, e **non** inizializzare con README (il repo è già pronto in locale).
+
+2. **Collega il repository remoto e invia il codice** (dalla root del progetto):
+   ```bash
+   git remote add origin https://github.com/TUO-USERNAME/GestioneProgetti.git
+   git branch -M main
+   git push -u origin main
+   ```
+   Sostituisci `TUO-USERNAME` con il tuo username GitHub e `GestioneProgetti` con il nome del repo se diverso.
+
+3. **In seguito**, per salvare modifiche:
+   ```bash
+   git add .
+   git commit -m "Descrizione delle modifiche"
+   git push
+   ```
+
+---
+
 ## Note
 
 - Il frontend in sviluppo usa il proxy Vite verso `/api` e `/uploads`, quindi deve girare insieme al backend per funzionare.
