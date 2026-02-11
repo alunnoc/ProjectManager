@@ -102,6 +102,17 @@ export interface DiaryComment {
   createdAt: string;
 }
 
+export interface ProjectEvent {
+  id: string;
+  projectId: string;
+  date: string;
+  time: string | null;
+  type: string; // call | meeting | other
+  name: string;
+  notes: string | null;
+  createdAt: string;
+}
+
 export interface SearchResult {
   tasks: Task[];
   diary: DiaryEntry[];
@@ -138,7 +149,9 @@ export interface ProjectDeliverable {
   title: string;
   description: string | null;
   dueDate: string | null;
+  dueDateRelative?: string | null;
   sortOrder: number;
+  taskId?: string | null; // task creato da "Diventa task" (per evidenziare)
 }
 
 export interface ProjectSummary {
@@ -148,12 +161,22 @@ export interface ProjectSummary {
     byColumn: { id: string; name: string; count: number }[];
     overdueCount: number;
     upcomingCount: number;
+    completedCount: number;
     totalDiaryEntries: number;
   };
   overdue: Array<{
     id: string;
     title: string;
     dueDate: string;
+    columnId: string;
+    column?: BoardColumn;
+    phase?: ProjectPhase | null;
+    workPackage?: WorkPackage | null;
+  }>;
+  completed: Array<{
+    id: string;
+    title: string;
+    dueDate: string | null;
     columnId: string;
     column?: BoardColumn;
     phase?: ProjectPhase | null;
@@ -167,6 +190,14 @@ export interface ProjectSummary {
     column?: BoardColumn;
     phase?: ProjectPhase | null;
     workPackage?: WorkPackage | null;
+  }>;
+  futureEvents: Array<{
+    id: string;
+    date: string;
+    time: string | null;
+    type: string;
+    name: string;
+    notes: string | null;
   }>;
   phases: Array<{
     id: string;

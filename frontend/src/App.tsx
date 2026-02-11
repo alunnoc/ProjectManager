@@ -7,9 +7,9 @@ import { ProjectConfig } from "./features/config/ProjectConfig";
 import { ProjectSummary } from "./features/summary/ProjectSummary";
 import { ProjectSelect } from "./components/ProjectSelect";
 
-function RedirectToBoard() {
+function RedirectToDefaultTab() {
   const { projectId } = useParams<{ projectId: string }>();
-  return <Navigate to={`/project/${projectId}/board`} replace />;
+  return <Navigate to={`/project/${projectId}/summary`} replace />;
 }
 
 function App() {
@@ -22,7 +22,7 @@ function App() {
         <Route path="project/:projectId/calendar" element={<ProjectCalendar />} />
         <Route path="project/:projectId/summary" element={<ProjectSummary />} />
         <Route path="project/:projectId/config" element={<ProjectConfig />} />
-        <Route path="project/:projectId" element={<RedirectToBoard />} />
+        <Route path="project/:projectId" element={<RedirectToDefaultTab />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

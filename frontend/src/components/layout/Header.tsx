@@ -9,13 +9,21 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [dark, setDark] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return document.documentElement.classList.contains("dark");
+    if (typeof window === "undefined") return true;
+    const saved = localStorage.getItem("theme");
+    if (saved === "light") return false;
+    if (saved === "dark") return true;
+    return true; // default: tema scuro
   });
 
   useEffect(() => {
-    if (dark) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
+    if (dark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
   }, [dark]);
 
   const openSearch = useCallback(() => setSearchOpen(true), []);

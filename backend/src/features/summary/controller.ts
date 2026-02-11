@@ -329,11 +329,39 @@ export async function getSummary(req: Request, res: Response, next: NextFunction
       d0.setHours(0, 0, 0, 0);
       return d0 < now;
     };
-    const overdue = tasks.filter((t) => t.dueDate && isOverdue(new Date(t.dueDate)));
+    const inThreeMonths = new Date(now);
+    inThreeMonths.setMonth(inThreeMonths.getMonth() + 3);
+    const isWithin3Months = (d: Date) => {
+      const d0 = new Date(d);
+      d0.setHours(0, 0, 0, 0);
+      return d0 >= now && d0 <= inThreeMonths;
+    };
+    const deliverableTaskIds = await prisma.projectDeliverable
+      .findMany({ where: { projectId, taskId: { not: null } }, select: { taskId: true } })
+      .then((rows) => new Set(rows.map((r) => r.taskId).filter(Boolean) as string[]));
+
+    const isCompletedColumn = (name: string) => name?.toLowerCase() === "completato";
+    const overdue = tasks.filter(
+      (t) => t.dueDate && isOverdue(new Date(t.dueDate)) && !isCompletedColumn(t.column.name)
+    );
     const upcoming = tasks
-      .filter((t) => t.dueDate && !isOverdue(new Date(t.dueDate)))
+      .filter((t) => t.dueDate && isWithin3Months(new Date(t.dueDate)))
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
       .slice(0, 20);
+    const completed = tasks.filter(
+      (t) => isCompletedColumn(t.column.name) && deliverableTaskIds.has(t.id)
+    );
+
+    let futureEvents: { id: string; date: Date; time: string | null; type: string; name: string; notes: string | null }[] = [];
+    try {
+      futureEvents = await prisma.projectEvent.findMany({
+        where: { projectId, date: { gte: now } },
+        orderBy: [{ date: "asc" }, { time: "asc" }],
+        take: 30,
+      });
+    } catch {
+      // tabella eventi assente o errore: restituisci array vuoto
+    }
 
     const analytics = {
       totalTasks: tasks.length,
@@ -343,7 +371,8 @@ export async function getSummary(req: Request, res: Response, next: NextFunction
         count: c._count.tasks,
       })),
       overdueCount: overdue.length,
-      upcomingCount: tasks.filter((t) => t.dueDate && !isOverdue(new Date(t.dueDate))).length,
+      upcomingCount: tasks.filter((t) => t.dueDate && isWithin3Months(new Date(t.dueDate))).length,
+      completedCount: completed.length,
       totalDiaryEntries: await prisma.diaryEntry.count({ where: { projectId } }),
     };
 
@@ -363,6 +392,15 @@ export async function getSummary(req: Request, res: Response, next: NextFunction
         phase: t.phase,
         workPackage: t.workPackage,
       })),
+      completed: completed.map((t) => ({
+        id: t.id,
+        title: t.title,
+        dueDate: t.dueDate,
+        columnId: t.columnId,
+        column: t.column,
+        phase: t.phase,
+        workPackage: t.workPackage,
+      })),
       upcoming: upcoming.map((t) => ({
         id: t.id,
         title: t.title,
@@ -371,6 +409,14 @@ export async function getSummary(req: Request, res: Response, next: NextFunction
         column: t.column,
         phase: t.phase,
         workPackage: t.workPackage,
+      })),
+      futureEvents: futureEvents.map((e) => ({
+        id: e.id,
+        date: e.date,
+        time: e.time,
+        type: e.type,
+        name: e.name,
+        notes: e.notes,
       })),
       phases: project.phases.map((p) => ({
         id: p.id,

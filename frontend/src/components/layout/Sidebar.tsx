@@ -1,7 +1,7 @@
+import { useState, useEffect, useRef } from "react";
 import { NavLink, useParams, Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Calendar, Settings, FolderKanban, Plus, Trash2, X, ClipboardList } from "lucide-react";
+import { LayoutDashboard, BookOpen, Calendar, Settings, FolderKanban, Plus, Trash2, X, ClipboardList, Pencil } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
-import { useEffect } from "react";
 
 const navItems = [
   { to: "summary", label: "Riepilogo", icon: ClipboardList },
@@ -19,14 +19,48 @@ interface SidebarProps {
 export function Sidebar({ open = true, onClose }: SidebarProps) {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { projects, fetchProjects, deleteProject } = useAppStore();
+  const { projects, fetchProjects, deleteProject, updateProject } = useAppStore();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
 
+  useEffect(() => {
+    if (editingId) {
+      setEditingName(projects.find((p) => p.id === editingId)?.name ?? "");
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [editingId, projects]);
+
   const closeIfMobile = () => {
     onClose?.();
+  };
+
+  const handleStartRename = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingId(id);
+  };
+
+  const handleSaveRename = async () => {
+    if (!editingId || !editingName.trim()) {
+      setEditingId(null);
+      return;
+    }
+    const name = editingName.trim();
+    if (name === projects.find((p) => p.id === editingId)?.name) {
+      setEditingId(null);
+      return;
+    }
+    try {
+      await updateProject(editingId, name);
+      setEditingId(null);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -85,34 +119,64 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
         <ul className="space-y-0.5">
           {projects.map((p) => {
             const isActive = projectId === p.id;
+            const isEditing = editingId === p.id;
             return (
               <li key={p.id} className="group flex items-center gap-0.5">
-                <Link
-                  to={`/project/${p.id}/board`}
-                  onClick={closeIfMobile}
-                  className={`flex-1 min-w-0 block px-3 py-2.5 rounded-lg text-sm transition-colors border-l-4 min-h-[44px] flex items-center touch-manipulation ${
-                    isActive
-                      ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200 font-semibold border-indigo-500"
-                      : "border-transparent text-[var(--accent-soft)] hover:bg-[var(--surface-hover)] hover:border-[var(--border)]"
-                  }`}
-                >
-                  <span className="truncate block">{p.name}</span>
-                </Link>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (confirm(`Eliminare il progetto "${p.name}"?`)) {
-                      deleteProject(p.id);
-                      if (projectId === p.id) navigate("/");
-                    }
-                  }}
-                  className="p-2.5 rounded-lg text-[var(--muted)] hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
-                  aria-label="Elimina progetto"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {isEditing ? (
+                  <div className="flex-1 min-w-0 flex items-center gap-1 px-2 py-1.5 rounded-lg border border-indigo-500 bg-[var(--surface)]">
+                    <input
+                      ref={inputRef}
+                      type="text"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveRename();
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                      onBlur={handleSaveRename}
+                      className="flex-1 min-w-0 px-2 py-1 rounded border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--accent)]"
+                    />
+                  </div>
+                ) : (
+                  <Link
+                    to={`/project/${p.id}/summary`}
+                    onClick={closeIfMobile}
+                    className={`flex-1 min-w-0 block px-3 py-2.5 rounded-lg text-sm transition-colors border-l-4 min-h-[44px] flex items-center touch-manipulation ${
+                      isActive
+                        ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200 font-semibold border-indigo-500"
+                        : "border-transparent text-[var(--accent-soft)] hover:bg-[var(--surface-hover)] hover:border-[var(--border)]"
+                    }`}
+                  >
+                    <span className="truncate block">{p.name}</span>
+                  </Link>
+                )}
+                {!isEditing && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => handleStartRename(e, p.id)}
+                      className="p-2.5 rounded-lg text-[var(--muted)] hover:bg-indigo-100 hover:text-indigo-600 dark:hover:bg-indigo-900/30 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
+                      aria-label="Rinomina progetto"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (confirm(`Eliminare il progetto "${p.name}"?`)) {
+                          deleteProject(p.id);
+                          if (projectId === p.id) navigate("/");
+                        }
+                      }}
+                      className="p-2.5 rounded-lg text-[var(--muted)] hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
+                      aria-label="Elimina progetto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </li>
             );
           })}

@@ -160,6 +160,10 @@ export async function convertDeliverableToTask(req: Request, res: Response, next
       },
       include: { comments: true, attachments: true, phase: true, workPackage: true },
     });
+    await prisma.projectDeliverable.update({
+      where: { id: deliverableId },
+      data: { taskId: task.id },
+    });
     res.status(201).json(task);
   } catch (e) {
     next(e);

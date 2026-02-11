@@ -18,7 +18,7 @@ export function ProjectSelect() {
     try {
       const p = await createProject(name.trim());
       setName("");
-      navigate(`/project/${p.id}/board`);
+      navigate(`/project/${p.id}/summary`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore durante la creazione";
       setError(message);
@@ -79,7 +79,7 @@ export function ProjectSelect() {
               <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] group">
                 <button
                   type="button"
-                  onClick={() => navigate(`/project/${p.id}/board`)}
+                  onClick={() => navigate(`/project/${p.id}/summary`)}
                   className="flex-1 flex items-center justify-between px-4 py-3.5 sm:py-3 text-left min-w-0 min-h-[52px] touch-manipulation"
                 >
                   <span className="font-medium text-[var(--accent)] truncate">{p.name}</span>

@@ -19,6 +19,7 @@ import { phasesRouter } from "./features/phases/routes.js";
 import { workPackagesRouter } from "./features/workpackages/routes.js";
 import { summaryRouter } from "./features/summary/routes.js";
 import { deliverablesRouter } from "./features/deliverables/routes.js";
+import { eventsRouter } from "./features/events/routes.js";
 import { searchRouter } from "./features/search/routes.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -53,6 +54,7 @@ app.use("/api/projects/:projectId/phases", phasesRouter);
 app.use("/api/projects/:projectId/work-packages", workPackagesRouter);
 app.use("/api/projects/:projectId/summary", summaryRouter);
 app.use("/api/projects/:projectId/deliverables", deliverablesRouter);
+app.use("/api/projects/:projectId/events", eventsRouter);
 app.use("/api/projects/:projectId", configRouter);
 app.use("/api/search", searchRouter);
 

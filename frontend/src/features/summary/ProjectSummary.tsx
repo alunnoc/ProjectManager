@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiGet, apiPost, apiPatch, apiUpload, apiDelete } from "@/api/client";
+import { useAppStore } from "@/store/useAppStore";
 import type { ProjectSummary as ProjectSummaryType, ProjectPhase, WorkPackage, ProjectDeliverable } from "@/types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -18,6 +19,7 @@ import {
   Upload,
   RotateCcw,
   ListTodo,
+  Pencil,
 } from "lucide-react";
 
 const DELIVERABLE_TYPES = [
@@ -36,9 +38,13 @@ interface DeliverableTableProps {
   phaseId?: string | null;
   workPackageId?: string | null;
   onUpdate?: () => void;
+  /** Se fornito, dopo "Diventa task" aggiorna solo lo stato (no refetch) così non si perde lo scroll */
+  onConvertToTask?: (deliverableId: string, taskId: string) => void;
+  /** Se fornito, dopo modifica deliverable aggiorna solo lo stato (no refetch). Patch: title, dueDate?, dueDateRelative? */
+  onRenameDeliverable?: (deliverableId: string, patch: { title: string; dueDate?: string | null; dueDateRelative?: string | null }) => void;
 }
 
-function DeliverableTable({ deliverables, compact, projectId, phaseId, workPackageId, onUpdate }: DeliverableTableProps) {
+function DeliverableTable({ deliverables, compact, projectId, phaseId, workPackageId, onUpdate, onConvertToTask, onRenameDeliverable }: DeliverableTableProps) {
   const [adding, setAdding] = useState(false);
   const [newType, setNewType] = useState("document");
   const [newTitle, setNewTitle] = useState("");
@@ -48,9 +54,13 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renamingTitle, setRenamingTitle] = useState("");
+  const [renamingDueDate, setRenamingDueDate] = useState("");
+  const [renamingDueDateRelative, setRenamingDueDateRelative] = useState("");
 
   const canEdit = projectId && (phaseId || workPackageId) && onUpdate;
-  const canConvertToTask = projectId && onUpdate;
+  const canConvertToTask = projectId && (onUpdate || onConvertToTask);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,15 +103,51 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
   };
 
   const handleConvertToTask = async (id: string) => {
-    if (!projectId || !onUpdate) return;
+    if (!projectId || (!onUpdate && !onConvertToTask)) return;
     setConvertingId(id);
     try {
-      await apiPost(`/projects/${projectId}/deliverables/${id}/convert-to-task`, {});
-      onUpdate();
+      const task = await apiPost<{ id: string }>(`/projects/${projectId}/deliverables/${id}/convert-to-task`, {});
+      if (onConvertToTask && task?.id) {
+        onConvertToTask(id, task.id);
+      } else {
+        onUpdate?.();
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setConvertingId(null);
+    }
+  };
+
+  const handleStartRename = (d: ProjectDeliverable) => {
+    setRenamingId(d.id);
+    setRenamingTitle(d.title);
+    setRenamingDueDate(d.dueDate ? d.dueDate.slice(0, 10) : "");
+    setRenamingDueDateRelative(d.dueDateRelative ?? "");
+  };
+
+  const handleSaveRename = async () => {
+    if (!projectId || !renamingId || !renamingTitle.trim()) {
+      setRenamingId(null);
+      return;
+    }
+    const title = renamingTitle.trim();
+    const dueDate = renamingDueDate.trim() || null;
+    const dueDateRelative = renamingDueDateRelative.trim() || null;
+    const d = deliverables.find((x) => x.id === renamingId);
+    const unchanged = d?.title === title && (d?.dueDate ? d.dueDate.slice(0, 10) : "") === (dueDate ?? "") && (d?.dueDateRelative ?? "") === (dueDateRelative ?? "");
+    if (unchanged) {
+      setRenamingId(null);
+      return;
+    }
+    try {
+      await apiPatch(`/projects/${projectId}/deliverables/${renamingId}`, { title, dueDate, dueDateRelative });
+      if (onRenameDeliverable) onRenameDeliverable(renamingId, { title, dueDate, dueDateRelative });
+      else onUpdate?.();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRenamingId(null);
     }
   };
 
@@ -110,11 +156,57 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
       <div>
         <ul className="text-xs space-y-1">
           {deliverables.map((d) => (
-            <li key={d.id} className="flex items-center gap-2 text-[var(--accent-soft)] group">
+            <li
+              key={d.id}
+              className={`flex items-center gap-2 text-[var(--accent-soft)] group rounded px-1.5 py-0.5 -mx-1.5 ${d.taskId ? "bg-emerald-50/70 dark:bg-emerald-900/25 border-l-2 border-emerald-500" : ""}`}
+            >
               <span className="text-[var(--muted)] shrink-0">{DELIVERABLE_TYPE_LABELS[d.type] ?? d.type}</span>
-              <span className="flex-1 min-w-0 truncate">{d.title}</span>
+              {renamingId === d.id ? (
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <input
+                    type="text"
+                    value={renamingTitle}
+                    onChange={(e) => setRenamingTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") e.preventDefault();
+                      if (e.key === "Escape") setRenamingId(null);
+                    }}
+                    className="w-full min-w-0 px-1.5 py-0.5 rounded border border-[var(--border)] text-[var(--accent)] text-xs"
+                    autoFocus
+                    placeholder="Titolo"
+                  />
+                  <div className="flex gap-1 flex-wrap">
+                    <input
+                      type="date"
+                      value={renamingDueDate}
+                      onChange={(e) => setRenamingDueDate(e.target.value)}
+                      className="px-1.5 py-0.5 rounded border border-[var(--border)] text-xs"
+                    />
+                    <input
+                      type="text"
+                      value={renamingDueDateRelative}
+                      onChange={(e) => setRenamingDueDateRelative(e.target.value)}
+                      placeholder="T0+3mesi"
+                      className="flex-1 min-w-[4rem] px-1.5 py-0.5 rounded border border-[var(--border)] text-xs"
+                    />
+                    <button type="button" onClick={handleSaveRename} className="px-1.5 py-0.5 rounded bg-indigo-600 text-white text-xs">Salva</button>
+                  </div>
+                </div>
+              ) : (
+                <span className="flex-1 min-w-0 truncate">{d.title}</span>
+              )}
+              {canEdit && renamingId !== d.id && (
+                <button type="button" onClick={() => handleStartRename(d)} className="p-1 rounded text-[var(--muted)] hover:bg-[var(--surface-hover)] opacity-0 group-hover:opacity-100 shrink-0" aria-label="Rinomina">
+                  <Pencil className="w-3 h-3" />
+                </button>
+              )}
+              {d.taskId && projectId && (
+                <Link to={`/project/${projectId}/board`} className="shrink-0 text-emerald-600 dark:text-emerald-400 hover:underline font-medium" title="Vai al task nella Board">
+                  Task creato
+                </Link>
+              )}
               {d.dueDate && <span className="text-[var(--muted)] shrink-0">{format(new Date(d.dueDate), "d MMM yyyy", { locale: it })}</span>}
-              {canConvertToTask && (
+              {canConvertToTask && !d.taskId && (
                 <button
                   type="button"
                   onClick={() => handleConvertToTask(d.id)}
@@ -190,15 +282,67 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
           </thead>
           <tbody>
             {deliverables.map((d) => (
-              <tr key={d.id} className="border-b border-[var(--border)] last:border-0">
+              <tr key={d.id} className={`border-b border-[var(--border)] last:border-0 ${d.taskId ? "bg-emerald-50/60 dark:bg-emerald-900/20" : ""}`}>
                 <td className="py-2 pr-2 text-[var(--muted)]">{DELIVERABLE_TYPE_LABELS[d.type] ?? d.type}</td>
-                <td className="py-2 pr-2 font-medium text-[var(--accent)]">{d.title}</td>
+                <td className="py-2 pr-2 font-medium text-[var(--accent)]">
+                  {renamingId === d.id ? (
+                    <input
+                      type="text"
+                      value={renamingTitle}
+                      onChange={(e) => setRenamingTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveRename();
+                        if (e.key === "Escape") setRenamingId(null);
+                      }}
+                      className="w-full max-w-[200px] px-2 py-1 rounded border border-[var(--border)] text-sm"
+                      autoFocus
+                      placeholder="Titolo"
+                    />
+                  ) : (
+                    <>
+                      {d.title}
+                      {canEdit && (
+                        <button type="button" onClick={() => handleStartRename(d)} className="ml-2 p-1 rounded text-[var(--muted)] hover:bg-[var(--surface-hover)] align-middle" aria-label="Rinomina">
+                          <Pencil className="w-3.5 h-3.5 inline" />
+                        </button>
+                      )}
+                      {d.taskId && projectId && (
+                        <Link to={`/project/${projectId}/board`} className="ml-2 inline-flex items-center text-xs text-emerald-600 dark:text-emerald-400 hover:underline" title="Vai al task nella Board">
+                          → Task creato
+                        </Link>
+                      )}
+                    </>
+                  )}
+                </td>
                 <td className="py-2 pr-2 text-[var(--accent-soft)] hidden sm:table-cell max-w-[200px] truncate">{d.description ?? "—"}</td>
-                <td className="py-2 pr-2 text-[var(--muted)]">{d.dueDate ? format(new Date(d.dueDate), "d MMM yyyy", { locale: it }) : "—"}</td>
+                <td className="py-2 pr-2 text-[var(--muted)]">
+                  {renamingId === d.id ? (
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex gap-2 flex-wrap items-center">
+                        <input
+                          type="date"
+                          value={renamingDueDate}
+                          onChange={(e) => setRenamingDueDate(e.target.value)}
+                          className="px-2 py-1 rounded border border-[var(--border)] text-sm"
+                        />
+                        <input
+                          type="text"
+                          value={renamingDueDateRelative}
+                          onChange={(e) => setRenamingDueDateRelative(e.target.value)}
+                          placeholder="T0+3mesi"
+                          className="w-24 px-2 py-1 rounded border border-[var(--border)] text-sm"
+                        />
+                        <button type="button" onClick={handleSaveRename} className="px-2 py-1 rounded bg-indigo-600 text-white text-sm">Salva</button>
+                      </div>
+                    </div>
+                  ) : (
+                    d.dueDate ? format(new Date(d.dueDate), "d MMM yyyy", { locale: it }) : "—"
+                  )}
+                </td>
                 {(canEdit || canConvertToTask) && (
                   <td className="py-2">
                     <div className="flex items-center gap-1">
-                      {canConvertToTask && (
+                      {canConvertToTask && !d.taskId && (
                         <button type="button" onClick={() => handleConvertToTask(d.id)} disabled={convertingId === d.id} className="p-1.5 rounded text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30" title="Crea task in Board (Da fare)" aria-label="Diventa task">
                           <ListTodo className="w-4 h-4" />
                         </button>
@@ -267,6 +411,7 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
 
 export function ProjectSummary() {
   const { projectId } = useParams<{ projectId: string }>();
+  const projectNameFromStore = useAppStore((s) => s.projects.find((p) => p.id === projectId)?.name);
   const [data, setData] = useState<ProjectSummaryType | null>(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -275,18 +420,68 @@ export function ProjectSummary() {
   const [resetting, setResetting] = useState(false);
   const [t0Saving, setT0Saving] = useState(false);
   const [t0Value, setT0Value] = useState<string>("");
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   const fetchSummary = () => {
     if (!projectId) return;
     setLoading(true);
+    setSummaryError(null);
     apiGet<ProjectSummaryType>(`/projects/${projectId}/summary`)
       .then((d) => {
         setData(d);
         setImportSuccess(null);
         setT0Value(d.project.t0Date ? d.project.t0Date.slice(0, 10) : "");
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        setSummaryError(err instanceof Error ? err.message : "Errore di rete o server.");
+      })
       .finally(() => setLoading(false));
+  };
+
+  /** Aggiorna solo il taskId del deliverable in stato (no refetch, così non si perde lo scroll) */
+  const setDeliverableTaskId = (deliverableId: string, taskId: string) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        phases: prev.phases.map((phase) => ({
+          ...phase,
+          deliverables: (phase.deliverables ?? []).map((d) => (d.id === deliverableId ? { ...d, taskId } : d)),
+          workPackages: phase.workPackages.map((wp) => ({
+            ...wp,
+            deliverables: (wp.deliverables ?? []).map((d) => (d.id === deliverableId ? { ...d, taskId } : d)),
+          })),
+        })),
+        workPackages: prev.workPackages.map((wp) => ({
+          ...wp,
+          deliverables: (wp.deliverables ?? []).map((d) => (d.id === deliverableId ? { ...d, taskId } : d)),
+        })),
+      };
+    });
+  };
+
+  /** Aggiorna titolo/data deliverable in stato (no refetch) */
+  const setDeliverableEdit = (deliverableId: string, patch: { title: string; dueDate?: string | null; dueDateRelative?: string | null }) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const upd = (d: ProjectDeliverable) => (d.id === deliverableId ? { ...d, ...patch } : d);
+      return {
+        ...prev,
+        phases: prev.phases.map((phase) => ({
+          ...phase,
+          deliverables: (phase.deliverables ?? []).map(upd),
+          workPackages: phase.workPackages.map((wp) => ({
+            ...wp,
+            deliverables: (wp.deliverables ?? []).map(upd),
+          })),
+        })),
+        workPackages: prev.workPackages.map((wp) => ({
+          ...wp,
+          deliverables: (wp.deliverables ?? []).map(upd),
+        })),
+      };
+    });
   };
 
   useEffect(() => {
@@ -366,20 +561,53 @@ export function ProjectSummary() {
 
   if (!data) {
     return (
-      <div className="text-[var(--muted)]">
-        Impossibile caricare il riepilogo.
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] p-6 max-w-md">
+        <p className="text-[var(--accent)] font-medium mb-1">Impossibile caricare il riepilogo.</p>
+        {summaryError && <p className="text-sm text-[var(--muted)] mb-4">{summaryError}</p>}
+        <p className="text-sm text-[var(--muted)] mb-4">
+          Verifica che il backend sia avviato e che il database sia aggiornato (es. <code className="text-xs bg-[var(--surface)] px-1 rounded">npx prisma migrate deploy</code> e <code className="text-xs bg-[var(--surface)] px-1 rounded">npx prisma generate</code>).
+        </p>
+        <button type="button" onClick={fetchSummary} className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+          Riprova
+        </button>
       </div>
     );
   }
 
   const { project, analytics, overdue, upcoming, phases, workPackages } = data;
+  const completed = data.completed ?? [];
+  const futureEvents = data.futureEvents ?? [];
+  const projectName = projectNameFromStore ?? project.name;
+
+  const nextEvent = futureEvents.length > 0 ? futureEvents[0] : null;
 
   return (
     <div className="space-y-8">
+      {/* Avviso evento futuro in evidenza in alto */}
+      {nextEvent && (
+        <Link
+          to={`/project/${projectId}/calendar`}
+          className="flex items-center gap-3 rounded-xl border border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/30 px-4 py-3 hover:bg-sky-100/80 dark:hover:bg-sky-900/50 transition-colors"
+        >
+          <CalendarIcon className="w-5 h-5 text-sky-600 dark:text-sky-400 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-sky-600 dark:text-sky-400 uppercase tracking-wider">
+              Prossimo evento
+            </p>
+            <p className="font-medium text-[var(--accent)] truncate">{nextEvent.name}</p>
+          </div>
+          <span className="text-sm text-sky-600 dark:text-sky-400 tabular-nums shrink-0">
+            {format(new Date(nextEvent.date), "EEE d MMM", { locale: it })}
+            {nextEvent.time ? ` · ${nextEvent.time}` : ""}
+          </span>
+          <ChevronRight className="w-4 h-4 text-sky-500 shrink-0" />
+        </Link>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-lg md:text-xl font-semibold text-[var(--accent)] mb-1">Riepilogo</h2>
-          <p className="text-sm text-[var(--muted)]">{project.name}</p>
+          <p className="text-sm text-[var(--muted)]">{projectName}</p>
         </div>
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -420,12 +648,15 @@ export function ProjectSummary() {
           Imposta la data di inizio progetto. Se hai importato un JSON con date relative (es. T0+3mesi), modificando qui il T0 e cliccando Applica tutte quelle date verranno ricalcolate.
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            value={t0Value}
-            onChange={(e) => setT0Value(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] focus-within:ring-2 focus-within:ring-indigo-500">
+            <CalendarIcon className="w-5 h-5 text-indigo-500 dark:text-indigo-400 shrink-0" aria-hidden />
+            <input
+              type="date"
+              value={t0Value}
+              onChange={(e) => setT0Value(e.target.value)}
+              className="bg-transparent border-0 p-0 text-[var(--accent)] focus:outline-none min-w-0 [color-scheme:light] dark:[color-scheme:dark]"
+            />
+          </div>
           <button
             type="button"
             onClick={handleApplyT0}
@@ -443,7 +674,7 @@ export function ProjectSummary() {
           <LayoutDashboard className="w-4 h-4" />
           Analytics
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] p-4">
             <p className="text-2xl font-bold text-[var(--accent)]">{analytics.totalTasks}</p>
             <p className="text-xs text-[var(--muted)]">Task totali</p>
@@ -455,6 +686,10 @@ export function ProjectSummary() {
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] p-4">
             <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{analytics.upcomingCount}</p>
             <p className="text-xs text-[var(--muted)]">In scadenza</p>
+          </div>
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] p-4">
+            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{analytics.completedCount}</p>
+            <p className="text-xs text-[var(--muted)]">Completati</p>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] p-4">
             <p className="text-2xl font-bold text-[var(--accent)]">{analytics.totalDiaryEntries}</p>
@@ -498,13 +733,13 @@ export function ProjectSummary() {
                 <li key={t.id}>
                   <Link
                     to={`/project/${projectId}/board`}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10 px-3 py-2 hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors"
+                    className="flex items-center gap-3 rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10 px-3 py-2 hover:bg-red-100/50 dark:hover:bg-red-900/20 transition-colors"
                   >
-                    <span className="font-medium text-[var(--accent)] truncate">{t.title}</span>
-                    <span className="text-xs text-red-600 dark:text-red-400 shrink-0">
+                    <span className="flex-1 min-w-0 font-medium text-[var(--accent)] truncate text-sm">{t.title}</span>
+                    <span className="w-24 shrink-0 text-right text-sm text-red-600 dark:text-red-400 tabular-nums">
                       {format(new Date(t.dueDate), "d MMM yyyy", { locale: it })}
                     </span>
-                    <ChevronRight className="w-4 h-4 text-[var(--muted)] shrink-0" />
+                    <ChevronRight className="w-4 h-4 shrink-0 text-[var(--muted)]" />
                   </Link>
                 </li>
               ))}
@@ -521,13 +756,13 @@ export function ProjectSummary() {
                 <li key={t.id}>
                   <Link
                     to={`/project/${projectId}/board`}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] px-3 py-2 hover:bg-[var(--surface)] transition-colors"
+                    className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] px-3 py-2 hover:bg-[var(--surface)] transition-colors"
                   >
-                    <span className="font-medium text-[var(--accent)] truncate">{t.title}</span>
-                    <span className="text-xs text-[var(--muted)] shrink-0">
+                    <span className="flex-1 min-w-0 font-medium text-[var(--accent)] truncate text-sm">{t.title}</span>
+                    <span className="w-24 shrink-0 text-right text-sm text-[var(--muted)] tabular-nums">
                       {format(new Date(t.dueDate), "d MMM yyyy", { locale: it })}
                     </span>
-                    <ChevronRight className="w-4 h-4 text-[var(--muted)] shrink-0" />
+                    <ChevronRight className="w-4 h-4 shrink-0 text-[var(--muted)]" />
                   </Link>
                 </li>
               ))}
@@ -537,8 +772,57 @@ export function ProjectSummary() {
             )}
           </div>
         )}
-        {overdue.length === 0 && upcoming.length === 0 && (
-          <p className="text-sm text-[var(--muted)]">Nessuna scadenza impostata sui task.</p>
+        {completed.length > 0 && (
+          <div className="mt-6">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400 mb-2">
+              Completati ({completed.length})
+            </p>
+            <ul className="space-y-2">
+              {completed.map((t) => (
+                <li key={t.id}>
+                  <Link
+                    to={`/project/${projectId}/board`}
+                    className="flex items-center gap-3 rounded-lg border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-900/10 px-3 py-2 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20 transition-colors"
+                  >
+                    <span className="flex-1 min-w-0 font-medium text-[var(--accent)] truncate text-sm">{t.title}</span>
+                    {t.dueDate && (
+                      <span className="w-24 shrink-0 text-right text-sm text-[var(--muted)] tabular-nums">
+                        {format(new Date(t.dueDate), "d MMM yyyy", { locale: it })}
+                      </span>
+                    )}
+                    <ChevronRight className="w-4 h-4 shrink-0 text-[var(--muted)]" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {futureEvents.length > 0 && (
+          <div className="mt-6">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-sky-600 dark:text-sky-400 mb-2">
+              Eventi futuri (call / meeting)
+            </p>
+            <ul className="space-y-2">
+              {futureEvents.map((ev) => (
+                <li key={ev.id}>
+                  <Link
+                    to={`/project/${projectId}/calendar`}
+                    className="flex items-center gap-3 rounded-lg border border-sky-200 dark:border-sky-800/50 bg-sky-50/60 dark:bg-sky-900/10 px-3 py-2 hover:bg-sky-100/50 dark:hover:bg-sky-900/20 transition-colors"
+                  >
+                    <span className="flex-1 min-w-0 font-medium text-[var(--accent)] truncate text-sm">{ev.name}</span>
+                    <span className="w-24 shrink-0 text-right text-sm text-sky-600 dark:text-sky-400 tabular-nums">
+                      {format(new Date(ev.date), "d MMM yyyy", { locale: it })}
+                      {ev.time ? ` ${ev.time}` : ""}
+                    </span>
+                    <ChevronRight className="w-4 h-4 shrink-0 text-[var(--muted)]" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {overdue.length === 0 && upcoming.length === 0 && completed.length === 0 && futureEvents.length === 0 && (
+          <p className="text-sm text-[var(--muted)]">Nessuna scadenza impostata sui task e nessun evento futuro.</p>
         )}
       </section>
 
@@ -583,6 +867,8 @@ export function ProjectSummary() {
                     projectId={projectId}
                     phaseId={phase.id}
                     onUpdate={fetchSummary}
+                    onConvertToTask={setDeliverableTaskId}
+                    onRenameDeliverable={setDeliverableEdit}
                   />
                 </div>
                 {phase.workPackages.length > 0 && (
@@ -600,6 +886,8 @@ export function ProjectSummary() {
                             projectId={projectId}
                             workPackageId={wp.id}
                             onUpdate={fetchSummary}
+                            onConvertToTask={setDeliverableTaskId}
+                            onRenameDeliverable={setDeliverableEdit}
                           />
                         </div>
                       </li>
@@ -645,6 +933,8 @@ export function ProjectSummary() {
                     projectId={projectId}
                     workPackageId={wp.id}
                     onUpdate={fetchSummary}
+                    onConvertToTask={setDeliverableTaskId}
+                    onRenameDeliverable={setDeliverableEdit}
                   />
                 </div>
               </li>
