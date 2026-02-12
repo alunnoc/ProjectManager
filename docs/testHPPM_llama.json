@@ -1,0 +1,124 @@
+{
+  "projectName": "O-STEP",
+  "t0": "2023-03-01",
+  "phases": [
+    {
+      "name": "Fase 1 - Sviluppo Framework",
+      "startDate": "T0+2mesi",
+      "endDate": "T0+12mesi",
+      "deliverables": [
+        {
+          "type": "document",
+          "title": "Specifiche del framework",
+          "description": ""
+        },
+        {
+          "type": "block_diagram",
+          "title": "Architettura del framework",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Fase 2 - Ottimizzazione e compilazione dei modelli",
+      "startDate": "T0+12mesi",
+      "endDate": "T0+18mesi",
+      "deliverables": [
+        {
+          "type": "prototype",
+          "title": "Prototipo dell'ottimizzatore",
+          "description": ""
+        },
+        {
+          "type": "report",
+          "title": "Rapporto di ottimizzazione dei modelli",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "Fase 3 - Test e validazione dei modelli",
+      "startDate": "T0+18mesi",
+      "endDate": "T0+24mesi",
+      "deliverables": [
+        {
+          "type": "document",
+          "title": "Rapporto di test e validazione",
+          "description": ""
+        },
+        {
+          "type": "block_diagram",
+          "title": "Diagramma dei risultati dei test",
+          "description": ""
+        }
+      ]
+    }
+  ],
+  "workPackages": [
+    {
+      "name": "WP1 - Sviluppo Framework",
+      "phaseName": "Fase 1 - Sviluppo Framework",
+      "startDate": "",
+      "endDate": "",
+      "deliverables": [
+        {
+          "type": "document",
+          "title": "Specifiche del framework per il WP1",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "WP2 - Ottimizzazione e compilazione dei modelli",
+      "phaseName": "Fase 2 - Ottimizzazione e compilazione dei modeli",
+      "startDate": "",
+      "endDate": "",
+      "deliverables": [
+        {
+          "type": "prototype",
+          "title": "Prototipo dell'ottimizzatore per il WP2",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "WP3 - Test e validazione dei modelli",
+      "phaseName": "Fase 3 - Test e validazione dei modelli",
+      "startDate": "",
+      "endDate": "",
+      "deliverables": [
+        {
+          "type": "report",
+          "title": "Rapporto di test e validazione per il WP3",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "WP4 - Integrazione dei modelli con l'hardware",
+      "phaseName": "Fase 3 - Test e validazione dei modelli",
+      "startDate": "",
+      "endDate": "",
+      "deliverables": [
+        {
+          "type": "document",
+          "title": "Rapporto di integrazione dei modelli con l'hardware",
+          "description": ""
+        }
+      ]
+    },
+    {
+      "name": "WP5 - Supporto e manutenzione dei modelli",
+      "phaseName": "",
+      "startDate": "",
+      "endDate": "",
+      "deliverables": [
+        {
+          "type": "other",
+          "title": "Supporto e manutenzione dei modelli",
+          "description": ""
+        }
+      ]
+    }
+  ]
+}

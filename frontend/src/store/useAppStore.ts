@@ -12,7 +12,7 @@ interface ProjectsState {
   deleteProject: (id: string) => Promise<void>;
 }
 
-export const useAppStore = create<ProjectsState>((set, get) => ({
+export const useAppStore = create<ProjectsState>((set) => ({
   projects: [],
   loading: false,
   error: null,

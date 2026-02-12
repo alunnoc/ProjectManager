@@ -16,19 +16,22 @@ function RedirectDiaryToCalendar() {
   return <Navigate to={projectId ? `/project/${projectId}/calendar` : "/"} replace />;
 }
 
+/** Wrappa una pagina nel Layout (route piatte per evitare problemi di matching con nested routes) */
+function WithLayout({ children }: { children: React.ReactNode }) {
+  return <Layout>{children}</Layout>;
+}
+
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<ProjectSelect />} />
-        <Route path="project/:projectId/board" element={<ProjectBoard />} />
-        <Route path="project/:projectId/diary" element={<RedirectDiaryToCalendar />} />
-        <Route path="project/:projectId/calendar" element={<ProjectCalendar />} />
-        <Route path="project/:projectId/summary" element={<ProjectSummary />} />
-        <Route path="project/:projectId/config" element={<ProjectConfig />} />
-        <Route path="project/:projectId" element={<RedirectToDefaultTab />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
+      <Route path="/" element={<WithLayout><ProjectSelect /></WithLayout>} />
+      <Route path="/project/:projectId/board" element={<WithLayout><ProjectBoard /></WithLayout>} />
+      <Route path="/project/:projectId/diary" element={<WithLayout><RedirectDiaryToCalendar /></WithLayout>} />
+      <Route path="/project/:projectId/calendar" element={<WithLayout><ProjectCalendar /></WithLayout>} />
+      <Route path="/project/:projectId/summary" element={<WithLayout><ProjectSummary /></WithLayout>} />
+      <Route path="/project/:projectId/config" element={<WithLayout><ProjectConfig /></WithLayout>} />
+      <Route path="/project/:projectId" element={<WithLayout><RedirectToDefaultTab /></WithLayout>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

@@ -34,7 +34,7 @@ interface TaskCardProps {
   onUpdate: () => void;
 }
 
-export function TaskCard({ task, index, onMove, onUpdate }: TaskCardProps) {
+export function TaskCard({ task, index, onMove: _onMove, onUpdate }: TaskCardProps) {
   const { projectId } = useParams<{ projectId: string }>();
   const [detailOpen, setDetailOpen] = useState(false);
 

@@ -6,11 +6,16 @@ import { parseDateOrRelative, parseRelativeDate } from "../../lib/relativeDate.j
 
 // Schema JSON per import (accetta date assolute YYYY-MM-DD o relative T0, T0+Nmesi, ecc.)
 const DELIVERABLE_TYPES = ["document", "block_diagram", "prototype", "report", "code", "other"] as const;
-const dateOrRelativeSchema = z.string().min(1).max(50).optional(); // "YYYY-MM-DD" o "T0+3mesi"
+// Stringa vuota "" viene trattata come assente (per date e phaseName opzionali)
+const emptyStringToUndefined = (val: unknown) => (val === "" ? undefined : val);
+const dateOrRelativeSchema = z.preprocess(
+  emptyStringToUndefined,
+  z.string().min(1).max(50).optional()
+); // "YYYY-MM-DD" o "T0+3mesi"
 const deliverableSchema = z.object({
   type: z.enum(DELIVERABLE_TYPES),
   title: z.string().min(1).max(500),
-  description: z.string().max(2000).optional(),
+  description: z.preprocess(emptyStringToUndefined, z.string().max(2000).optional()),
   dueDate: dateOrRelativeSchema,
 });
 const phaseImportSchema = z.object({
@@ -21,7 +26,7 @@ const phaseImportSchema = z.object({
 });
 const workPackageImportSchema = z.object({
   name: z.string().min(1).max(200),
-  phaseName: z.string().min(1).max(200),
+  phaseName: z.preprocess(emptyStringToUndefined, z.string().min(1).max(200).optional()),
   startDate: dateOrRelativeSchema,
   endDate: dateOrRelativeSchema,
   deliverables: z.array(deliverableSchema).optional().default([]),
@@ -65,7 +70,6 @@ export async function importFromJson(req: Request, res: Response, next: NextFunc
     await prisma.project.update({
       where: { id: projectId },
       data: {
-        ...(data.projectName?.trim() && { name: data.projectName.trim() }),
         ...(t0Date && { t0Date }),
       },
     });
@@ -432,6 +436,8 @@ export async function getSummary(req: Request, res: Response, next: NextFunction
           id: wp.id,
           name: wp.name,
           sortOrder: wp.sortOrder,
+          startDate: wp.startDate,
+          endDate: wp.endDate,
           taskCount: wp._count.tasks,
           deliverables: "deliverables" in wp ? wp.deliverables : [],
         })),
@@ -442,6 +448,8 @@ export async function getSummary(req: Request, res: Response, next: NextFunction
         sortOrder: wp.sortOrder,
         phaseId: wp.phaseId,
         phase: wp.phase,
+        startDate: wp.startDate,
+        endDate: wp.endDate,
         taskCount: wp._count.tasks,
         deliverables: "deliverables" in wp ? wp.deliverables : [],
       })),

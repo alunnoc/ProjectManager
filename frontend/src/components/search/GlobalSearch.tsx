@@ -146,7 +146,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
                             </p>
                           )}
                           <p className="text-xs text-[var(--muted)] mt-1">
-                            {e.project?.name}
+                            {(e as { project?: { name: string } }).project?.name ?? e.projectId}
                           </p>
                         </Link>
                       </li>

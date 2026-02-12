@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { apiGet, apiPost } from "@/api/client";
-import type { BoardColumn, Task } from "@/types";
+import type { BoardColumn } from "@/types";
 import { KanbanColumn } from "./KanbanColumn";
 import { TaskCard } from "./TaskCard";
 import { CreateTaskForm } from "./CreateTaskForm";

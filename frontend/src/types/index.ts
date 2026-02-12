@@ -215,6 +215,8 @@ export interface ProjectSummary {
       id: string;
       name: string;
       sortOrder: number;
+      startDate: string | null;
+      endDate: string | null;
       taskCount: number;
       deliverables?: ProjectDeliverable[];
     }>;
@@ -225,6 +227,8 @@ export interface ProjectSummary {
     sortOrder: number;
     phaseId: string | null;
     phase?: ProjectPhase | null;
+    startDate: string | null;
+    endDate: string | null;
     taskCount: number;
     deliverables?: ProjectDeliverable[];
   }>;

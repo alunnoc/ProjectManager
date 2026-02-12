@@ -21,6 +21,7 @@ import {
   ListTodo,
   Pencil,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 const DELIVERABLE_TYPES = [
   { value: "document", label: "Documento" },
@@ -31,6 +32,104 @@ const DELIVERABLE_TYPES = [
   { value: "other", label: "Altro" },
 ];
 const DELIVERABLE_TYPE_LABELS: Record<string, string> = Object.fromEntries(DELIVERABLE_TYPES.map((t) => [t.value, t.label]));
+
+type GanttPhase = ProjectSummaryType["phases"][number];
+
+interface GanttRow {
+  id: string;
+  label: string;
+  start: Date;
+  end: Date;
+  isPhase: boolean;
+}
+
+function ProjectGantt({ phases }: { phases: GanttPhase[] }) {
+  const rows: GanttRow[] = [];
+  for (const p of phases) {
+    if (p.startDate && p.endDate) {
+      rows.push({
+        id: p.id,
+        label: p.name,
+        start: new Date(p.startDate),
+        end: new Date(p.endDate),
+        isPhase: true,
+      });
+    }
+    for (const wp of p.workPackages ?? []) {
+      if (wp.startDate && wp.endDate) {
+        rows.push({
+          id: wp.id,
+          label: wp.name,
+          start: new Date(wp.startDate),
+          end: new Date(wp.endDate),
+          isPhase: false,
+        });
+      }
+    }
+  }
+  if (rows.length === 0) {
+    return (
+      <p className="text-sm text-[var(--muted)] py-6 text-center">
+        Imposta date di inizio e fine alle fasi e ai work package per vedere il diagramma di Gantt.
+      </p>
+    );
+  }
+  const minDate = new Date(Math.min(...rows.map((r) => r.start.getTime())));
+  const maxDate = new Date(Math.max(...rows.map((r) => r.end.getTime())));
+  const totalMs = maxDate.getTime() - minDate.getTime() || 1;
+  const monthLabels: { date: Date; label: string }[] = [];
+  const d = new Date(minDate);
+  d.setDate(1);
+  while (d <= maxDate) {
+    monthLabels.push({ date: new Date(d), label: format(d, "MMM yyyy", { locale: it }) });
+    d.setMonth(d.getMonth() + 1);
+  }
+  const barMinWidth = 120;
+  const timelineWidth = Math.max(barMinWidth * monthLabels.length, 200);
+
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[280px]" style={{ width: timelineWidth + 180 }}>
+        <div className="flex border-b border-[var(--border)] pb-1 mb-1">
+          <div className="w-[160px] shrink-0 text-xs font-medium text-[var(--muted)]">Attività</div>
+          <div className="flex-1 flex text-xs text-[var(--muted)]" style={{ minWidth: timelineWidth }}>
+            {monthLabels.map((m) => (
+              <div key={m.label} className="shrink-0 text-center" style={{ width: barMinWidth }}>
+                {m.label}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-0.5">
+          {rows.map((row) => {
+            const left = ((row.start.getTime() - minDate.getTime()) / totalMs) * 100;
+            const width = ((row.end.getTime() - row.start.getTime()) / totalMs) * 100;
+            return (
+              <div key={row.id} className="flex items-center gap-2 min-h-[28px]">
+                <div
+                  className={`w-[160px] shrink-0 truncate text-sm ${row.isPhase ? "font-semibold text-[var(--accent)]" : "text-[var(--muted)] pl-4"}`}
+                  title={row.label}
+                >
+                  {row.label}
+                </div>
+                <div className="flex-1 relative h-5 rounded bg-[var(--surface)]" style={{ minWidth: timelineWidth }}>
+                  <div
+                    className="absolute top-0.5 bottom-0.5 rounded bg-indigo-500 dark:bg-indigo-400 opacity-90"
+                    style={{
+                      left: `${left}%`,
+                      width: `${Math.max(width, 2)}%`,
+                    }}
+                    title={`${format(row.start, "d MMM yyyy", { locale: it })} – ${format(row.end, "d MMM yyyy", { locale: it })}`}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface DeliverableTableProps {
   deliverables: ProjectDeliverable[];
@@ -518,7 +617,10 @@ export function ProjectSummary() {
   };
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
     fetchSummary();
   }, [projectId]);
 
@@ -584,9 +686,21 @@ export function ProjectSummary() {
     }
   };
 
+  if (!projectId) {
+    return (
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] p-6 max-w-md">
+        <p className="text-[var(--accent)] font-medium mb-2">Nessun progetto selezionato.</p>
+        <p className="text-sm text-[var(--muted)] mb-4">Seleziona un progetto dalla lista o creane uno nuovo.</p>
+        <Link to="/" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700">
+          Torna ai progetti
+        </Link>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center min-h-[280px]">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
       </div>
     );
@@ -607,7 +721,19 @@ export function ProjectSummary() {
     );
   }
 
-  const { project, analytics, overdue, upcoming, phases, workPackages } = data;
+  const project = data.project ?? { id: projectId, name: "", t0Date: null };
+  const analytics = data.analytics ?? {
+    totalTasks: 0,
+    byColumn: [],
+    overdueCount: 0,
+    upcomingCount: 0,
+    completedCount: 0,
+    totalDiaryEntries: 0,
+  };
+  const overdue = data.overdue ?? [];
+  const upcoming = data.upcoming ?? [];
+  const phases = data.phases ?? [];
+  const workPackages = data.workPackages ?? [];
   const completed = data.completed ?? [];
   const futureEvents = data.futureEvents ?? [];
   const projectName = projectNameFromStore ?? project.name;
@@ -658,7 +784,7 @@ export function ProjectSummary() {
             <button
               type="button"
               onClick={handleResetStructure}
-              disabled={resetting || (data.phases.length === 0 && data.workPackages.length === 0)}
+              disabled={resetting || (phases.length === 0 && workPackages.length === 0)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RotateCcw className="w-4 h-4" />
@@ -732,10 +858,53 @@ export function ProjectSummary() {
             </p>
           </div>
         </div>
+
+        {/* Grafici */}
+        {((phases?.length ?? 0) > 0 || analytics.byColumn.length > 0) && (
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Gantt: fasi e work package */}
+            {phases && phases.length > 0 && (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] p-4">
+                <p className="text-sm font-medium text-[var(--accent)] mb-3">Timeline progetto (Gantt)</p>
+                <ProjectGantt phases={phases} />
+              </div>
+            )}
+
+            {/* Barre: Task per colonna */}
+            {analytics.byColumn.length > 0 && (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-hover)] p-4">
+                <p className="text-sm font-medium text-[var(--accent)] mb-3">Task per colonna</p>
+                <div className="h-[240px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={analytics.byColumn.map((col) => ({ name: col.name, task: col.count }))}
+                      layout="vertical"
+                      margin={{ top: 4, right: 24, left: 4, bottom: 4 }}
+                    >
+                      <XAxis type="number" allowDecimals={false} tick={{ fill: "var(--muted)", fontSize: 12 }} />
+                      <YAxis type="category" dataKey="name" width={80} tick={{ fill: "var(--accent-soft)", fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "var(--surface)",
+                          border: "1px solid var(--border)",
+                          borderRadius: "8px",
+                        }}
+                        formatter={(value: number | undefined) => [value ?? 0, "task"]}
+                        labelFormatter={(label) => `Colonna: ${label}`}
+                      />
+                      <Bar dataKey="task" fill="rgb(99 102 241)" radius={[0, 4, 4, 0]} name="Task" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {analytics.byColumn.length > 0 && (
           <div className="mt-4 rounded-xl border border-[var(--border)] overflow-hidden">
             <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider px-4 py-2 bg-[var(--surface-hover)]">
-              Task per colonna
+              Task per colonna (dettaglio)
             </p>
             <ul className="divide-y divide-[var(--border)]">
               {analytics.byColumn.map((col) => (
