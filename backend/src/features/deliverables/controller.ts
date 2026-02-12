@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../middleware/errorHandler.js";
 
-const TYPES = ["document", "block_diagram", "prototype", "report", "other"] as const;
+const TYPES = ["document", "block_diagram", "prototype", "report", "code", "other"] as const;
 
 const createSchema = z.object({
   phaseId: z.string().optional(),

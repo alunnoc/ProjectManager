@@ -27,6 +27,7 @@ const DELIVERABLE_TYPES = [
   { value: "block_diagram", label: "Block diagram" },
   { value: "prototype", label: "Prototipo" },
   { value: "report", label: "Report" },
+  { value: "code", label: "Codice" },
   { value: "other", label: "Altro" },
 ];
 const DELIVERABLE_TYPE_LABELS: Record<string, string> = Object.fromEntries(DELIVERABLE_TYPES.map((t) => [t.value, t.label]));
@@ -40,8 +41,8 @@ interface DeliverableTableProps {
   onUpdate?: () => void;
   /** Se fornito, dopo "Diventa task" aggiorna solo lo stato (no refetch) così non si perde lo scroll */
   onConvertToTask?: (deliverableId: string, taskId: string) => void;
-  /** Se fornito, dopo modifica deliverable aggiorna solo lo stato (no refetch). Patch: title, dueDate?, dueDateRelative? */
-  onRenameDeliverable?: (deliverableId: string, patch: { title: string; dueDate?: string | null; dueDateRelative?: string | null }) => void;
+  /** Se fornito, dopo modifica deliverable aggiorna solo lo stato (no refetch). Patch: title, type?, dueDate?, dueDateRelative? */
+  onRenameDeliverable?: (deliverableId: string, patch: { title: string; type?: string; dueDate?: string | null; dueDateRelative?: string | null }) => void;
 }
 
 function DeliverableTable({ deliverables, compact, projectId, phaseId, workPackageId, onUpdate, onConvertToTask, onRenameDeliverable }: DeliverableTableProps) {
@@ -56,6 +57,7 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renamingTitle, setRenamingTitle] = useState("");
+  const [renamingType, setRenamingType] = useState("");
   const [renamingDueDate, setRenamingDueDate] = useState("");
   const [renamingDueDateRelative, setRenamingDueDateRelative] = useState("");
 
@@ -122,6 +124,7 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
   const handleStartRename = (d: ProjectDeliverable) => {
     setRenamingId(d.id);
     setRenamingTitle(d.title);
+    setRenamingType(d.type);
     setRenamingDueDate(d.dueDate ? d.dueDate.slice(0, 10) : "");
     setRenamingDueDateRelative(d.dueDateRelative ?? "");
   };
@@ -132,17 +135,22 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
       return;
     }
     const title = renamingTitle.trim();
+    const type = renamingType;
     const dueDate = renamingDueDate.trim() || null;
     const dueDateRelative = renamingDueDateRelative.trim() || null;
     const d = deliverables.find((x) => x.id === renamingId);
-    const unchanged = d?.title === title && (d?.dueDate ? d.dueDate.slice(0, 10) : "") === (dueDate ?? "") && (d?.dueDateRelative ?? "") === (dueDateRelative ?? "");
+    const unchanged =
+      d?.title === title &&
+      d?.type === type &&
+      (d?.dueDate ? d.dueDate.slice(0, 10) : "") === (dueDate ?? "") &&
+      (d?.dueDateRelative ?? "") === (dueDateRelative ?? "");
     if (unchanged) {
       setRenamingId(null);
       return;
     }
     try {
-      await apiPatch(`/projects/${projectId}/deliverables/${renamingId}`, { title, dueDate, dueDateRelative });
-      if (onRenameDeliverable) onRenameDeliverable(renamingId, { title, dueDate, dueDateRelative });
+      await apiPatch(`/projects/${projectId}/deliverables/${renamingId}`, { title, type, dueDate, dueDateRelative });
+      if (onRenameDeliverable) onRenameDeliverable(renamingId, { title, type, dueDate, dueDateRelative });
       else onUpdate?.();
     } catch (err) {
       console.error(err);
@@ -160,9 +168,17 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
               key={d.id}
               className={`flex items-center gap-2 text-[var(--accent-soft)] group rounded px-1.5 py-0.5 -mx-1.5 ${d.taskId ? "bg-emerald-50/70 dark:bg-emerald-900/25 border-l-2 border-emerald-500" : ""}`}
             >
-              <span className="text-[var(--muted)] shrink-0">{DELIVERABLE_TYPE_LABELS[d.type] ?? d.type}</span>
               {renamingId === d.id ? (
                 <div className="flex-1 min-w-0 flex flex-col gap-1">
+                  <select
+                    value={renamingType}
+                    onChange={(e) => setRenamingType(e.target.value)}
+                    className="w-full max-w-[120px] px-1.5 py-0.5 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-xs"
+                  >
+                    {DELIVERABLE_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
                   <input
                     type="text"
                     value={renamingTitle}
@@ -171,7 +187,7 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
                       if (e.key === "Enter") e.preventDefault();
                       if (e.key === "Escape") setRenamingId(null);
                     }}
-                    className="w-full min-w-0 px-1.5 py-0.5 rounded border border-[var(--border)] text-[var(--accent)] text-xs"
+                    className="w-full min-w-0 px-1.5 py-0.5 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-xs"
                     autoFocus
                     placeholder="Titolo"
                   />
@@ -180,20 +196,23 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
                       type="date"
                       value={renamingDueDate}
                       onChange={(e) => setRenamingDueDate(e.target.value)}
-                      className="px-1.5 py-0.5 rounded border border-[var(--border)] text-xs"
+                      className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-xs"
                     />
                     <input
                       type="text"
                       value={renamingDueDateRelative}
                       onChange={(e) => setRenamingDueDateRelative(e.target.value)}
                       placeholder="T0+3mesi"
-                      className="flex-1 min-w-[4rem] px-1.5 py-0.5 rounded border border-[var(--border)] text-xs"
+                      className="flex-1 min-w-[4rem] px-1.5 py-0.5 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-xs"
                     />
                     <button type="button" onClick={handleSaveRename} className="px-1.5 py-0.5 rounded bg-indigo-600 text-white text-xs">Salva</button>
                   </div>
                 </div>
               ) : (
-                <span className="flex-1 min-w-0 truncate">{d.title}</span>
+                <>
+                  <span className="text-[var(--muted)] shrink-0">{DELIVERABLE_TYPE_LABELS[d.type] ?? d.type}</span>
+                  <span className="flex-1 min-w-0 truncate">{d.title}</span>
+                </>
               )}
               {canEdit && renamingId !== d.id && (
                 <button type="button" onClick={() => handleStartRename(d)} className="p-1 rounded text-[var(--muted)] hover:bg-[var(--surface-hover)] opacity-0 group-hover:opacity-100 shrink-0" aria-label="Rinomina">
@@ -245,15 +264,15 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
               </button>
             ) : (
               <form onSubmit={handleAdd} className="mt-2 p-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] space-y-2">
-                <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--border)] text-sm">
+                <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full px-2 py-1 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm">
                   {DELIVERABLE_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
-                <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Titolo" required className="w-full px-2 py-1 rounded border border-[var(--border)] text-sm" />
+                <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Titolo" required className="w-full px-2 py-1 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm" />
                 <div className="flex gap-2 flex-wrap">
-                  <input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="flex-1 min-w-0 px-2 py-1 rounded border border-[var(--border)] text-sm" />
-                  <input type="text" value={newDueDateRelative} onChange={(e) => setNewDueDateRelative(e.target.value)} placeholder="T0+3mesi" className="flex-1 min-w-0 px-2 py-1 rounded border border-[var(--border)] text-sm" />
+                  <input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="flex-1 min-w-0 px-2 py-1 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm" />
+                  <input type="text" value={newDueDateRelative} onChange={(e) => setNewDueDateRelative(e.target.value)} placeholder="T0+3mesi" className="flex-1 min-w-0 px-2 py-1 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm" />
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" disabled={saving} className="px-2 py-1 rounded bg-indigo-600 text-white text-xs disabled:opacity-50">Aggiungi</button>
@@ -283,7 +302,21 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
           <tbody>
             {deliverables.map((d) => (
               <tr key={d.id} className={`border-b border-[var(--border)] last:border-0 ${d.taskId ? "bg-emerald-50/60 dark:bg-emerald-900/20" : ""}`}>
-                <td className="py-2 pr-2 text-[var(--muted)]">{DELIVERABLE_TYPE_LABELS[d.type] ?? d.type}</td>
+                <td className="py-2 pr-2 text-[var(--muted)]">
+                  {renamingId === d.id ? (
+                    <select
+                      value={renamingType}
+                      onChange={(e) => setRenamingType(e.target.value)}
+                      className="px-2 py-1 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm"
+                    >
+                      {DELIVERABLE_TYPES.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    DELIVERABLE_TYPE_LABELS[d.type] ?? d.type
+                  )}
+                </td>
                 <td className="py-2 pr-2 font-medium text-[var(--accent)]">
                   {renamingId === d.id ? (
                     <input
@@ -294,7 +327,7 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
                         if (e.key === "Enter") handleSaveRename();
                         if (e.key === "Escape") setRenamingId(null);
                       }}
-                      className="w-full max-w-[200px] px-2 py-1 rounded border border-[var(--border)] text-sm"
+                      className="w-full max-w-[200px] px-2 py-1 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm"
                       autoFocus
                       placeholder="Titolo"
                     />
@@ -323,14 +356,14 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
                           type="date"
                           value={renamingDueDate}
                           onChange={(e) => setRenamingDueDate(e.target.value)}
-                          className="px-2 py-1 rounded border border-[var(--border)] text-sm"
+                          className="px-2 py-1 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm"
                         />
                         <input
                           type="text"
                           value={renamingDueDateRelative}
                           onChange={(e) => setRenamingDueDateRelative(e.target.value)}
                           placeholder="T0+3mesi"
-                          className="w-24 px-2 py-1 rounded border border-[var(--border)] text-sm"
+                          className="w-24 px-2 py-1 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm"
                         />
                         <button type="button" onClick={handleSaveRename} className="px-2 py-1 rounded bg-indigo-600 text-white text-sm">Salva</button>
                       </div>
@@ -372,7 +405,7 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-[var(--muted)] mb-1">Tipo</label>
-                  <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full px-3 py-2 rounded border border-[var(--border)] text-sm">
+                  <select value={newType} onChange={(e) => setNewType(e.target.value)} className="w-full px-3 py-2 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm">
                     {DELIVERABLE_TYPES.map((t) => (
                       <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
@@ -380,21 +413,21 @@ function DeliverableTable({ deliverables, compact, projectId, phaseId, workPacka
                 </div>
                 <div>
                   <label className="block text-xs text-[var(--muted)] mb-1">Titolo *</label>
-                  <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Titolo" required className="w-full px-3 py-2 rounded border border-[var(--border)] text-sm" />
+                  <input type="text" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Titolo" required className="w-full px-3 py-2 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs text-[var(--muted)] mb-1">Descrizione (opzionale)</label>
-                <input type="text" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Descrizione" className="w-full px-3 py-2 rounded border border-[var(--border)] text-sm" />
+                <input type="text" value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Descrizione" className="w-full px-3 py-2 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-[var(--muted)] mb-1">Scadenza (data)</label>
-                  <input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="w-full px-3 py-2 rounded border border-[var(--border)] text-sm" />
+                  <input type="date" value={newDueDate} onChange={(e) => setNewDueDate(e.target.value)} className="w-full px-3 py-2 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm" />
                 </div>
                 <div>
                   <label className="block text-xs text-[var(--muted)] mb-1">Scadenza (T0+...)</label>
-                  <input type="text" value={newDueDateRelative} onChange={(e) => setNewDueDateRelative(e.target.value)} placeholder="es. T0+3mesi" className="w-full px-3 py-2 rounded border border-[var(--border)] text-sm" />
+                  <input type="text" value={newDueDateRelative} onChange={(e) => setNewDueDateRelative(e.target.value)} placeholder="es. T0+3mesi" className="w-full px-3 py-2 rounded border border-[var(--border)] bg-white dark:bg-gray-100 text-gray-900 text-sm" />
                 </div>
               </div>
               <div className="flex gap-2">
@@ -461,8 +494,8 @@ export function ProjectSummary() {
     });
   };
 
-  /** Aggiorna titolo/data deliverable in stato (no refetch) */
-  const setDeliverableEdit = (deliverableId: string, patch: { title: string; dueDate?: string | null; dueDateRelative?: string | null }) => {
+  /** Aggiorna titolo/tipo/data deliverable in stato (no refetch) */
+  const setDeliverableEdit = (deliverableId: string, patch: { title: string; type?: string; dueDate?: string | null; dueDateRelative?: string | null }) => {
     setData((prev) => {
       if (!prev) return prev;
       const upd = (d: ProjectDeliverable) => (d.id === deliverableId ? { ...d, ...patch } : d);

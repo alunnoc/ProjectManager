@@ -40,6 +40,29 @@ export async function listTasks(req: Request, res: Response, next: NextFunction)
   }
 }
 
+/** Task con scadenza più vicina (oggi o nel futuro); se più task hanno la stessa data, tutti */
+export async function getNearestDueTasks(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { projectId } = req.params;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const tasks = await prisma.task.findMany({
+      where: { projectId, dueDate: { gte: now } },
+      orderBy: { dueDate: "asc" },
+      select: { id: true, title: true, dueDate: true },
+    });
+    if (tasks.length === 0) {
+      res.json([]);
+      return;
+    }
+    const nearestDate = tasks[0].dueDate!;
+    const nearest = tasks.filter((t) => t.dueDate && t.dueDate.getTime() === nearestDate.getTime());
+    res.json(nearest);
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function createTask(req: Request, res: Response, next: NextFunction) {
   try {
     const { projectId } = req.params;

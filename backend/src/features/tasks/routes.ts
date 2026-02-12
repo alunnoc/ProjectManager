@@ -2,6 +2,7 @@ import { Router } from "express";
 import { upload } from "../../lib/multer.js";
 import {
   listTasks,
+  getNearestDueTasks,
   createTask,
   getTask,
   updateTask,
@@ -15,6 +16,7 @@ import {
 const router = Router({ mergeParams: true });
 
 router.get("/", listTasks);
+router.get("/nearest-due", getNearestDueTasks);
 router.post("/", createTask);
 router.get("/:taskId", getTask);
 router.patch("/:taskId", updateTask);

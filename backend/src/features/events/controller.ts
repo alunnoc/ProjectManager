@@ -58,6 +58,23 @@ export async function calendarDaysWithEvents(req: Request, res: Response, next: 
   }
 }
 
+/** Eventi da oggi in poi (per homepage / anteprima) */
+export async function getFutureEvents(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { projectId } = req.params;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const events = await prisma.projectEvent.findMany({
+      where: { projectId, date: { gte: now } },
+      orderBy: [{ date: "asc" }, { time: "asc" }],
+      take: 15,
+    });
+    res.json(events);
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function getEventsByDate(req: Request, res: Response, next: NextFunction) {
   try {
     const { projectId } = req.params;

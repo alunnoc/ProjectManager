@@ -5,7 +5,7 @@ import { AppError } from "../../middleware/errorHandler.js";
 import { parseDateOrRelative, parseRelativeDate } from "../../lib/relativeDate.js";
 
 // Schema JSON per import (accetta date assolute YYYY-MM-DD o relative T0, T0+Nmesi, ecc.)
-const DELIVERABLE_TYPES = ["document", "block_diagram", "prototype", "report", "other"] as const;
+const DELIVERABLE_TYPES = ["document", "block_diagram", "prototype", "report", "code", "other"] as const;
 const dateOrRelativeSchema = z.string().min(1).max(50).optional(); // "YYYY-MM-DD" o "T0+3mesi"
 const deliverableSchema = z.object({
   type: z.enum(DELIVERABLE_TYPES),

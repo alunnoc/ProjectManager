@@ -16,7 +16,7 @@ export async function listColumns(req: Request, res: Response, next: NextFunctio
       include: {
         tasks: {
           orderBy: { order: "asc" },
-          include: { comments: true, attachments: true, phase: true, workPackage: true },
+          include: { comments: true, attachments: true, phase: true, workPackage: true, deliverable: true },
         },
       },
     });

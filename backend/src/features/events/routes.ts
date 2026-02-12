@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   listEvents,
   calendarDaysWithEvents,
+  getFutureEvents,
   getEventsByDate,
   createEvent,
   updateEvent,
@@ -12,6 +13,7 @@ const router = Router({ mergeParams: true });
 
 router.get("/", listEvents);
 router.get("/calendar-days", calendarDaysWithEvents);
+router.get("/future", getFutureEvents);
 router.get("/by-date", getEventsByDate);
 router.post("/", createEvent);
 router.patch("/:eventId", updateEvent);

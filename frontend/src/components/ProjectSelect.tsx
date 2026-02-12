@@ -1,7 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, FolderKanban, Trash2 } from "lucide-react";
+import { Plus, FolderKanban, Trash2, Calendar, ListTodo } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
+import { apiGet } from "@/api/client";
+import type { ProjectEvent } from "@/types";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+
+interface NearestTask {
+  id: string;
+  title: string;
+  dueDate: string;
+}
 
 export function ProjectSelect() {
   const navigate = useNavigate();
@@ -9,6 +19,42 @@ export function ProjectSelect() {
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [eventsByProject, setEventsByProject] = useState<Record<string, ProjectEvent[]>>({});
+  const [nearestTasksByProject, setNearestTasksByProject] = useState<Record<string, NearestTask[]>>({});
+
+  useEffect(() => {
+    if (projects.length === 0) {
+      setEventsByProject({});
+      setNearestTasksByProject({});
+      return;
+    }
+    let cancelled = false;
+    const ids = projects.map((p) => p.id);
+    Promise.all([
+      Promise.all(ids.map((id) => apiGet<ProjectEvent[]>(`/projects/${id}/events/future`))),
+      Promise.all(ids.map((id) => apiGet<NearestTask[]>(`/projects/${id}/tasks/nearest-due`))),
+    ])
+      .then(([eventsResults, tasksResults]) => {
+        if (cancelled) return;
+        const nextEvents: Record<string, ProjectEvent[]> = {};
+        const nextTasks: Record<string, NearestTask[]> = {};
+        ids.forEach((id, i) => {
+          nextEvents[id] = eventsResults[i] ?? [];
+          nextTasks[id] = tasksResults[i] ?? [];
+        });
+        setEventsByProject(nextEvents);
+        setNearestTasksByProject(nextTasks);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setEventsByProject({});
+          setNearestTasksByProject({});
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [projects]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,35 +120,75 @@ export function ProjectSelect() {
         </div>
       ) : (
         <ul className="grid gap-2">
-          {projects.map((p) => (
-            <li key={p.id}>
-              <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] group">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/project/${p.id}/summary`)}
-                  className="flex-1 flex items-center justify-between px-4 py-3.5 sm:py-3 text-left min-w-0 min-h-[52px] touch-manipulation"
-                >
-                  <span className="font-medium text-[var(--accent)] truncate">{p.name}</span>
-                  <span className="text-xs sm:text-sm text-[var(--muted)] shrink-0 ml-2">
-                    {p._count?.tasks ?? 0} task · {p._count?.diaryEntries ?? 0} resoconti
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (confirm(`Eliminare il progetto "${p.name}"? Tutti i task, il diario e la configurazione saranno eliminati.`)) {
-                      deleteProject(p.id);
-                    }
-                  }}
-                  className="p-3 rounded-lg text-[var(--muted)] hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
-                  aria-label="Elimina progetto"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </li>
-          ))}
+          {projects.map((p) => {
+            const futureEvents = eventsByProject[p.id] ?? [];
+            const nearestTasks = nearestTasksByProject[p.id] ?? [];
+            return (
+              <li key={p.id}>
+                <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)] group">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/project/${p.id}/summary`)}
+                    className="flex-1 flex flex-col items-stretch px-4 py-3.5 sm:py-3 text-left min-w-0 min-h-[52px] touch-manipulation"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-[var(--accent)] truncate">{p.name}</span>
+                      <span className="text-xs sm:text-sm text-[var(--muted)] shrink-0">
+                        {p._count?.tasks ?? 0} task · {p._count?.diaryEntries ?? 0} resoconti
+                      </span>
+                    </div>
+                    {nearestTasks.length > 0 && (
+                      <div className="mt-2 flex gap-2">
+                        <ListTodo className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5" />
+                        <ul className="text-xs text-[var(--muted)] space-y-0.5 min-w-0">
+                          {nearestTasks.map((t) => (
+                            <li key={t.id} className="truncate">
+                              <span className="text-[var(--accent-soft)]">{t.title}</span>
+                              <span className="text-indigo-600 dark:text-indigo-400 tabular-nums ml-1">
+                                scadenza {format(new Date(t.dueDate), "d MMM yyyy", { locale: it })}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {futureEvents.length > 0 && (
+                      <div className="mt-2 flex gap-2">
+                        <Calendar className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400 shrink-0 mt-0.5" />
+                        <ul className="text-xs text-[var(--muted)] space-y-0.5 min-w-0">
+                          {futureEvents.slice(0, 3).map((ev) => (
+                            <li key={ev.id} className="truncate">
+                              <span className="text-[var(--accent-soft)]">{ev.name}</span>
+                              <span className="text-sky-600 dark:text-sky-400 tabular-nums ml-1">
+                                {format(new Date(ev.date), "d MMM", { locale: it })}
+                                {ev.time ? ` ${ev.time}` : ""}
+                              </span>
+                            </li>
+                          ))}
+                          {futureEvents.length > 3 && (
+                            <li className="text-[var(--muted)]">+{futureEvents.length - 3} altri</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Eliminare il progetto "${p.name}"? Tutti i task, il diario e la configurazione saranno eliminati.`)) {
+                        deleteProject(p.id);
+                      }
+                    }}
+                    className="p-3 rounded-lg text-[var(--muted)] hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
+                    aria-label="Elimina progetto"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

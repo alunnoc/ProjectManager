@@ -37,6 +37,8 @@ export interface Task {
   project?: Project;
   phase?: ProjectPhase | null;
   workPackage?: WorkPackage | null;
+  /** Deliverable da cui è stato creato il task (per colore per tipo) */
+  deliverable?: { id: string; type: string; title: string } | null;
 }
 
 export interface ProjectPhase {
