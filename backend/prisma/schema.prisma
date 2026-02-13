@@ -141,6 +141,7 @@ model Task {
   workPackageId String?
   workPackage WorkPackage? @relation(fields: [workPackageId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
+  category    String?  // tipo/categoria per colore bordo (come deliverable: document | block_diagram | ...)
 
   comments     TaskComment[]
   attachments  TaskAttachment[]

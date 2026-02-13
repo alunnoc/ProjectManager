@@ -8,14 +8,15 @@ import { TASK_TYPE } from "./ProjectBoard";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { useState } from "react";
 
-/** Colore bordo sinistro per task creati da deliverable (per tipo) */
+/** Colori bordo sinistro: palette differenziata per accessibilità (daltonismo: blu, bianco, arancione, rosso, slate, giallo, grigio) */
 const DELIVERABLE_TYPE_BORDER: Record<string, string> = {
-  document: "border-l-4 border-l-blue-500",
-  block_diagram: "border-l-4 border-l-violet-500",
-  prototype: "border-l-4 border-l-amber-500",
-  report: "border-l-4 border-l-emerald-500",
-  code: "border-l-4 border-l-orange-500",
-  other: "border-l-4 border-l-gray-400 dark:border-l-gray-500",
+  document: "border-l-4 border-l-blue-500",       // blu
+  block_diagram: "border-l-4 border-l-white",       // bianco
+  prototype: "border-l-4 border-l-orange-500",     // arancione
+  report: "border-l-4 border-l-red-500",          // rosso
+  code: "border-l-4 border-l-slate-600",           // slate (scuro)
+  test: "border-l-4 border-l-yellow-400",         // giallo
+  other: "border-l-4 border-l-gray-500",          // grigio
 };
 
 const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
@@ -24,6 +25,7 @@ const DELIVERABLE_TYPE_LABELS: Record<string, string> = {
   prototype: "Prototipo",
   report: "Report",
   code: "Codice",
+  test: "Test",
   other: "Altro",
 };
 
@@ -48,9 +50,9 @@ export function TaskCard({ task, index, onMove: _onMove, onUpdate }: TaskCardPro
   const attachmentsCount = task.attachments?.length ?? 0;
   const hasDueDate = task.dueDate != null;
   const overdue = hasDueDate && isPast(new Date(task.dueDate!));
-  const deliverableType = task.deliverable?.type;
-  const typeBorderClass = deliverableType ? DELIVERABLE_TYPE_BORDER[deliverableType] ?? DELIVERABLE_TYPE_BORDER.other : "";
-  const typeLabel = deliverableType ? DELIVERABLE_TYPE_LABELS[deliverableType] ?? deliverableType : null;
+  const typeSlug = task.deliverable?.type ?? task.category ?? null;
+  const typeBorderClass = typeSlug ? DELIVERABLE_TYPE_BORDER[typeSlug] ?? DELIVERABLE_TYPE_BORDER.other : "";
+  const typeLabel = typeSlug ? DELIVERABLE_TYPE_LABELS[typeSlug] ?? typeSlug : null;
 
   return (
     <>
@@ -63,7 +65,7 @@ export function TaskCard({ task, index, onMove: _onMove, onUpdate }: TaskCardPro
           isDragging ? "opacity-50 shadow-lg" : ""
         }`}
         onClick={() => setDetailOpen(true)}
-        title={typeLabel ? `Da deliverable: ${typeLabel}` : undefined}
+        title={typeLabel ? (task.deliverable ? `Da deliverable: ${typeLabel}` : typeLabel) : undefined}
       >
         <div className="flex items-start gap-2">
           <GripVertical className="w-4 h-4 text-[var(--muted)] shrink-0 mt-0.5" />

@@ -29,6 +29,7 @@ const DELIVERABLE_TYPES = [
   { value: "prototype", label: "Prototipo" },
   { value: "report", label: "Report" },
   { value: "code", label: "Codice" },
+  { value: "test", label: "Test" },
   { value: "other", label: "Altro" },
 ];
 const DELIVERABLE_TYPE_LABELS: Record<string, string> = Object.fromEntries(DELIVERABLE_TYPES.map((t) => [t.value, t.label]));

@@ -2,6 +2,18 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { apiPost } from "@/api/client";
 
+/** Categorie disponibili per il task (stesso elenco del backend, per colore bordo) */
+export const TASK_CATEGORIES = [
+  { value: "", label: "Nessuna" },
+  { value: "document", label: "Documento" },
+  { value: "block_diagram", label: "Block diagram" },
+  { value: "prototype", label: "Prototipo" },
+  { value: "report", label: "Report" },
+  { value: "code", label: "Codice" },
+  { value: "test", label: "Test" },
+  { value: "other", label: "Altro" },
+] as const;
+
 interface CreateTaskFormProps {
   projectId: string;
   columnId: string;
@@ -14,6 +26,7 @@ export function CreateTaskForm({ projectId, columnId, onCreated }: CreateTaskFor
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -27,11 +40,13 @@ export function CreateTaskForm({ projectId, columnId, onCreated }: CreateTaskFor
         columnId,
         startDate: startDate || undefined,
         dueDate: dueDate || undefined,
+        category: category || undefined,
       });
       setTitle("");
       setDescription("");
       setStartDate("");
       setDueDate("");
+      setCategory("");
       setOpen(false);
       onCreated();
     } catch (err) {
@@ -71,6 +86,20 @@ export function CreateTaskForm({ projectId, columnId, onCreated }: CreateTaskFor
         rows={2}
         className="w-full px-3 py-2 rounded border border-[var(--border)] bg-transparent text-[var(--accent)] placeholder:text-[var(--muted)] text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
       />
+      <div>
+        <label className="block text-xs text-[var(--muted)] mb-0.5">Categoria (colore bordo)</label>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="w-full px-2 py-1.5 rounded border border-[var(--border)] bg-transparent text-[var(--accent)] text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          {TASK_CATEGORIES.map((c) => (
+            <option key={c.value || "none"} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="block text-xs text-[var(--muted)] mb-0.5">Inizio</label>
@@ -101,7 +130,7 @@ export function CreateTaskForm({ projectId, columnId, onCreated }: CreateTaskFor
         </button>
         <button
           type="button"
-          onClick={() => { setOpen(false); setTitle(""); setDescription(""); setStartDate(""); setDueDate(""); }}
+          onClick={() => { setOpen(false); setTitle(""); setDescription(""); setStartDate(""); setDueDate(""); setCategory(""); }}
           className="px-3 py-1.5 rounded bg-[var(--surface-hover)] text-[var(--accent)] text-sm"
         >
           Annulla

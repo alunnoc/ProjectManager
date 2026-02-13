@@ -60,6 +60,26 @@ body {
   background: var(--muted);
 }
 
+/* Menù a tendina (select): testo nero e sfondo chiaro così le opzioni si vedono sempre */
+select,
+select option {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+}
+select:not([multiple]) {
+  color: #0f172a !important;
+  background-color: #f8fafc !important;
+}
+.dark select,
+.dark select option {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+}
+.dark select:not([multiple]) {
+  color: #0f172a !important;
+  background-color: #f1f5f9 !important;
+}
+
 /* React Day Picker - calendario curato */
 .rdp {
   --rdp-cell-size: 52px;

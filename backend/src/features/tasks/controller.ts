@@ -5,6 +5,10 @@ import fs from "node:fs/promises";
 import { prisma } from "../../lib/prisma.js";
 import { AppError } from "../../middleware/errorHandler.js";
 
+/** Categorie task (stessi valori dei tipi deliverable, per colore bordo) */
+export const TASK_CATEGORIES = ["document", "block_diagram", "prototype", "report", "code", "test", "other"] as const;
+const categorySchema = z.enum(TASK_CATEGORIES).optional();
+
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional();
 const createSchema = z.object({
   title: z.string().min(1).max(300),
@@ -14,6 +18,7 @@ const createSchema = z.object({
   dueDate: dateSchema,
   phaseId: z.string().optional(),
   workPackageId: z.string().optional(),
+  category: categorySchema,
 });
 const updateSchema = z.object({
   title: z.string().min(1).max(300).optional(),
@@ -22,6 +27,7 @@ const updateSchema = z.object({
   dueDate: dateSchema.nullable().optional(),
   phaseId: z.string().nullable().optional(),
   workPackageId: z.string().nullable().optional(),
+  category: categorySchema.nullable().optional(),
 });
 const moveSchema = z.object({ columnId: z.string(), order: z.number().int().min(0) });
 const commentSchema = z.object({ content: z.string().min(1).max(2000) });
@@ -83,6 +89,7 @@ export async function createTask(req: Request, res: Response, next: NextFunction
         dueDate: body.dueDate ? new Date(body.dueDate) : null,
         phaseId: body.phaseId ?? null,
         workPackageId: body.workPackageId ?? null,
+        category: body.category ?? null,
       },
       include: { comments: true, attachments: true, phase: true, workPackage: true },
     });
@@ -124,6 +131,7 @@ export async function updateTask(req: Request, res: Response, next: NextFunction
     if (body.dueDate !== undefined) data.dueDate = body.dueDate ? new Date(body.dueDate) : null;
     if (body.phaseId !== undefined) data.phaseId = body.phaseId;
     if (body.workPackageId !== undefined) data.workPackageId = body.workPackageId;
+    if (body.category !== undefined) data.category = body.category;
     const task = await prisma.task.updateMany({
       where: { id: taskId, projectId },
       data,

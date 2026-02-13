@@ -31,6 +31,8 @@ export interface Task {
   phaseId: string | null;
   workPackageId: string | null;
   createdAt: string;
+  /** Categoria per colore bordo (come tipo deliverable), se task aggiunto a mano */
+  category?: string | null;
   comments?: TaskComment[];
   attachments?: TaskAttachment[];
   column?: BoardColumn;

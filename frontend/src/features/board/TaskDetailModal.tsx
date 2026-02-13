@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, MessageSquare, Paperclip, Send, Trash2, Calendar } from "lucide-react";
 import { apiGet, apiPost, apiPatch, apiDelete, apiUpload, uploadsUrl } from "@/api/client";
 import type { Task, ProjectPhase, WorkPackage } from "@/types";
+import { TASK_CATEGORIES } from "./CreateTaskForm";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -24,6 +25,7 @@ export function TaskDetailModal({
   const [dueDate, setDueDate] = useState(task.dueDate ? task.dueDate.slice(0, 10) : "");
   const [phaseId, setPhaseId] = useState(task.phaseId ?? "");
   const [workPackageId, setWorkPackageId] = useState(task.workPackageId ?? "");
+  const [category, setCategory] = useState(task.category ?? task.deliverable?.type ?? "");
   const [phases, setPhases] = useState<ProjectPhase[]>([]);
   const [workPackages, setWorkPackages] = useState<WorkPackage[]>([]);
   const [comment, setComment] = useState("");
@@ -45,6 +47,7 @@ export function TaskDetailModal({
         dueDate: dueDate || null,
         phaseId: phaseId || null,
         workPackageId: workPackageId || null,
+        category: category || null,
       });
       onUpdate();
     } finally {
@@ -159,6 +162,22 @@ export function TaskDetailModal({
               rows={3}
               className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-transparent text-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
             />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[var(--muted)] mb-1">Categoria (colore bordo)</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              onBlur={saveTask}
+              disabled={saving}
+              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-transparent text-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {TASK_CATEGORIES.map((c) => (
+                <option key={c.value || "none"} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>

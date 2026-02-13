@@ -5,7 +5,7 @@ import { AppError } from "../../middleware/errorHandler.js";
 import { parseDateOrRelative, parseRelativeDate } from "../../lib/relativeDate.js";
 
 // Schema JSON per import (accetta date assolute YYYY-MM-DD o relative T0, T0+Nmesi, ecc.)
-const DELIVERABLE_TYPES = ["document", "block_diagram", "prototype", "report", "code", "other"] as const;
+const DELIVERABLE_TYPES = ["document", "block_diagram", "prototype", "report", "code", "test", "other"] as const;
 // Stringa vuota "" viene trattata come assente (per date e phaseName opzionali)
 const emptyStringToUndefined = (val: unknown) => (val === "" ? undefined : val);
 const dateOrRelativeSchema = z.preprocess(
@@ -349,7 +349,12 @@ export async function getSummary(req: Request, res: Response, next: NextFunction
       (t) => t.dueDate && isOverdue(new Date(t.dueDate)) && !isCompletedColumn(t.column.name)
     );
     const upcoming = tasks
-      .filter((t) => t.dueDate && isWithin3Months(new Date(t.dueDate)))
+      .filter(
+        (t) =>
+          t.dueDate &&
+          isWithin3Months(new Date(t.dueDate)) &&
+          !isCompletedColumn(t.column.name)
+      )
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
       .slice(0, 20);
     const completed = tasks.filter(
@@ -375,7 +380,7 @@ export async function getSummary(req: Request, res: Response, next: NextFunction
         count: c._count.tasks,
       })),
       overdueCount: overdue.length,
-      upcomingCount: tasks.filter((t) => t.dueDate && isWithin3Months(new Date(t.dueDate))).length,
+      upcomingCount: upcoming.length,
       completedCount: completed.length,
       totalDiaryEntries: await prisma.diaryEntry.count({ where: { projectId } }),
     };
