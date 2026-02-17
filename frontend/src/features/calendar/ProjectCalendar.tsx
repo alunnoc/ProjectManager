@@ -7,6 +7,11 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { CalendarDays, FileText, MessageCircle, Plus, Video, Users, Calendar, X, ImagePlus, Send, Trash2, ChevronDown, ChevronRight, Pencil } from "lucide-react";
 
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|svg)$/i;
+function isImageFile(filename: string) {
+  return IMAGE_EXT.test(filename);
+}
+
 const EVENT_TYPES = [
   { value: "call", label: "Call", icon: Video },
   { value: "meeting", label: "Meeting", icon: Users },
@@ -32,63 +37,119 @@ function DiaryEntryCard({
 }: DiaryEntryCardProps) {
   const [content, setContent] = useState(entry.content ?? "");
   const [comment, setComment] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [enlargedImageUrl, setEnlargedImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setContent(entry.content ?? "");
+  }, [entry.content]);
 
   const handleBlur = () => {
     if (content !== (entry.content ?? "")) {
       onUpdateContent(content);
     }
+    setIsEditing(false);
   };
 
   return (
     <article className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
-      <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+      <div className="p-4 border-b border-[var(--border)] flex items-center justify-between gap-2">
         <time className="font-medium text-[var(--accent)]">
           {format(new Date(entry.date), "EEEE d MMMM yyyy", { locale: it })}
         </time>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="p-2 rounded-lg text-[var(--muted)] hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30"
-          aria-label="Elimina"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="p-2 rounded-lg text-[var(--muted)] hover:bg-indigo-100 hover:text-indigo-600 dark:hover:bg-indigo-900/30"
+              aria-label="Modifica"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onDelete}
+            className="p-2 rounded-lg text-[var(--muted)] hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30"
+            aria-label="Elimina"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
       <div className="p-4 space-y-4">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          onBlur={handleBlur}
-          placeholder="Scrivi il resoconto..."
-          rows={3}
-          className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-transparent text-[var(--accent)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-        />
+        {isEditing ? (
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onBlur={handleBlur}
+            placeholder="Scrivi il resoconto..."
+            rows={3}
+            autoFocus
+            className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-transparent text-[var(--accent)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          />
+        ) : (
+          <div className="min-h-[4rem]">
+            {content.trim() ? (
+              <p className="whitespace-pre-wrap text-[var(--accent)] text-sm">{content}</p>
+            ) : (
+              <p className="text-[var(--muted)] text-sm italic">Nessun testo. Clicca sulla matita per scrivere.</p>
+            )}
+          </div>
+        )}
         <div>
           <div className="flex items-center gap-2 mb-2">
             <ImagePlus className="w-4 h-4 text-[var(--muted)]" />
-            <span className="text-sm font-medium text-[var(--accent)]">Immagini</span>
+            <span className="text-sm font-medium text-[var(--accent)]">Immagini e file</span>
           </div>
           <div className="flex flex-wrap gap-3">
-            {entry.images?.map((img) => (
-              <div key={img.id} className="relative group">
-                <img
-                  src={uploadsUrl(img.path)}
-                  alt={img.filename}
-                  className="w-24 h-24 object-cover rounded-lg border border-[var(--border)]"
-                />
-                <button
-                  type="button"
-                  onClick={() => onRemoveImage(img.id)}
-                  className="absolute top-1 right-1 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+            {entry.images?.map((img) =>
+              isImageFile(img.filename) ? (
+                <div key={img.id} className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => setEnlargedImageUrl(uploadsUrl(img.path))}
+                    className="block w-24 h-24 rounded-lg border border-[var(--border)] overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <img
+                      src={uploadsUrl(img.path)}
+                      alt={img.filename}
+                      className="w-full h-full object-cover cursor-pointer"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onRemoveImage(img.id); }}
+                    className="absolute top-1 right-1 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div key={img.id} className="relative group flex items-center gap-2 min-w-0 max-w-[200px] rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] pl-3 pr-8 py-2">
+                  <FileText className="w-5 h-5 shrink-0 text-[var(--muted)]" />
+                  <a
+                    href={uploadsUrl(img.path)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-indigo-600 dark:text-indigo-400 truncate hover:underline"
+                  >
+                    {img.filename}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveImage(img.id)}
+                    className="absolute top-1 right-1 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              )
+            )}
             <label className="flex items-center justify-center w-24 h-24 rounded-lg border-2 border-dashed border-[var(--border)] cursor-pointer hover:bg-[var(--surface-hover)] text-[var(--muted)]">
               <input
                 type="file"
-                accept="image/*"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
@@ -136,6 +197,31 @@ function DiaryEntryCard({
           </form>
         </div>
       </div>
+      {enlargedImageUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setEnlargedImageUrl(null)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Escape" && setEnlargedImageUrl(null)}
+          aria-label="Chiudi"
+        >
+          <button
+            type="button"
+            onClick={() => setEnlargedImageUrl(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white hover:bg-white/20"
+            aria-label="Chiudi"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={enlargedImageUrl}
+            alt="Ingrandita"
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </article>
   );
 }

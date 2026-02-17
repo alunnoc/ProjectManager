@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { upload } from "../../lib/multer.js";
+import { uploadAny } from "../../lib/multer.js";
 import {
   listEntries,
   calendarDaysWithEntries,
@@ -22,7 +22,7 @@ router.post("/", createEntry);
 router.get("/:entryId", getEntry);
 router.patch("/:entryId", updateEntry);
 router.delete("/:entryId", deleteEntry);
-router.post("/:entryId/images", upload.single("file"), addImage);
+router.post("/:entryId/images", uploadAny.single("file"), addImage);
 router.delete("/:entryId/images/:imageId", removeImage);
 router.post("/:entryId/comments", addComment);
 

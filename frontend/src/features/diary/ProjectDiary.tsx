@@ -4,7 +4,12 @@ import { apiGet, apiPost, apiPatch, apiDelete, apiUpload, uploadsUrl } from "@/a
 import type { DiaryEntry } from "@/types";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import { Plus, ImagePlus, MessageSquare, Trash2, Send } from "lucide-react";
+import { Plus, ImagePlus, MessageSquare, Trash2, Send, FileText } from "lucide-react";
+
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|svg)$/i;
+function isImageFile(filename: string) {
+  return IMAGE_EXT.test(filename);
+}
 import { Loader2 } from "lucide-react";
 
 export function ProjectDiary() {
@@ -253,33 +258,53 @@ function DiaryEntryCard({
           className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-transparent text-[var(--accent)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
         />
 
-        {/* Immagini */}
+        {/* Immagini e file */}
         <div>
           <div className="flex items-center gap-2 mb-2">
             <ImagePlus className="w-4 h-4 text-[var(--muted)]" />
-            <span className="text-sm font-medium text-[var(--accent)]">Immagini</span>
+            <span className="text-sm font-medium text-[var(--accent)]">Immagini e file</span>
           </div>
           <div className="flex flex-wrap gap-3">
-            {entry.images?.map((img) => (
-              <div key={img.id} className="relative group">
-                <img
-                  src={uploadsUrl(img.path)}
-                  alt={img.filename}
-                  className="w-24 h-24 object-cover rounded-lg border border-[var(--border)]"
-                />
-                <button
-                  type="button"
-                  onClick={() => onRemoveImage(img.id)}
-                  className="absolute top-1 right-1 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+            {entry.images?.map((img) =>
+              isImageFile(img.filename) ? (
+                <div key={img.id} className="relative group">
+                  <img
+                    src={uploadsUrl(img.path)}
+                    alt={img.filename}
+                    className="w-24 h-24 object-cover rounded-lg border border-[var(--border)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onRemoveImage(img.id)}
+                    className="absolute top-1 right-1 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div key={img.id} className="relative group flex items-center gap-2 min-w-0 max-w-[200px] rounded-lg border border-[var(--border)] bg-[var(--surface-hover)] pl-3 pr-8 py-2">
+                  <FileText className="w-5 h-5 shrink-0 text-[var(--muted)]" />
+                  <a
+                    href={uploadsUrl(img.path)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-indigo-600 dark:text-indigo-400 truncate hover:underline"
+                  >
+                    {img.filename}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => onRemoveImage(img.id)}
+                    className="absolute top-1 right-1 p-1 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              )
+            )}
             <label className="flex items-center justify-center w-24 h-24 rounded-lg border-2 border-dashed border-[var(--border)] cursor-pointer hover:bg-[var(--surface-hover)] text-[var(--muted)]">
               <input
                 type="file"
-                accept="image/*"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];

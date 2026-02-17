@@ -30,6 +30,12 @@ export const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
 });
 
+/** Come upload ma accetta qualsiasi tipo di file (per es. allegati resoconti). */
+export const uploadAny = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+});
+
 // Per import JSON: solo memoria, nessun filtro tipo (max 2 MB)
 export const uploadJson = multer({
   storage: multer.memoryStorage(),
