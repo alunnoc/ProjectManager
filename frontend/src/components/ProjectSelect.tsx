@@ -76,9 +76,14 @@ export function ProjectSelect() {
 
   return (
     <div className="max-w-2xl mx-auto w-full">
-      <h2 className="text-xl md:text-2xl font-semibold text-[var(--accent)] mb-4 md:mb-6">
-        I tuoi progetti
-      </h2>
+      <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-semibold text-[var(--accent)]">
+          I tuoi progetti
+        </h2>
+        <time className="text-sm text-[var(--muted)]" dateTime={format(new Date(), "yyyy-MM-dd")}>
+          {format(new Date(), "EEEE d MMMM yyyy", { locale: it })}
+        </time>
+      </div>
       <form onSubmit={handleCreate} className="flex flex-col gap-3 mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row gap-2">
           <input
