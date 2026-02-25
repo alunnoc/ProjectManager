@@ -1,0 +1,148 @@
+Index: tools/remote_black_board/gbus/src/server/gbus_main.c
+===================================================================
+--- tools/remote_black_board/gbus/src/server/gbus_main.c	(revision 936)
++++ tools/remote_black_board/gbus/src/server/gbus_main.c	(working copy)
+@@ -336,6 +336,12 @@
+         }
+     };
+ 
++    /* Override socket descriptor recv has the same as send, socket_close and gbus_remote_socketInit are resilient */
++    if (remote->node_channel.local_port == remote->node_channel.remote_port)
++    {
++        recv.io.sock = &remote->socket_pair_id.in ;
++    }
++
+     /* finished consuming arguments, unlock main thread */
+     pthread_mutex_unlock(args->mutex);
+ 
+Index: tools/remote_black_board/gbus/src/server/makefile
+===================================================================
+--- tools/remote_black_board/gbus/src/server/makefile	(revision 936)
++++ tools/remote_black_board/gbus/src/server/makefile	(working copy)
+@@ -36,8 +36,10 @@
+ 
+ CFLAGS += -I../../include -I../../../include
+ 
+-CFLAGS += -g -D_REENTRANT -m32 -Wall -Wno-format-truncation -DVERSION="\"GBUS\"" #-Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function
++# -m32 
+ 
++CFLAGS += -g -D_REENTRANT -m32 -Wall -Wno-format-truncation -DVERSION="\"GBUS\"" #-Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function
++
+ LDFLAGS= -lpthread -lrt
+ 
+ LIB  = gbus_utillib
+@@ -59,11 +61,11 @@
+ 
+ $(IMAGE): ../utillib/$(LIB).c ../../../libs/$(LIB1).c $(CSRC)
+ 	$(HIDE)mkdir -p $(BINDIR)
+-	$(HIDE)gcc -DMACHINEID=1 -DMACHINEIDS="\"CPUA/B\"" $(CFLAGS) $^ -o $(BINDIR)/$@ $(LDFLAGS)
++	$(HIDE)$(CCACHE) gcc -DMACHINEID=1 -DMACHINEIDS="\"CPUA/B\"" $(CFLAGS) $^ -o $(BINDIR)/$@ $(LDFLAGS)
+ 
+ $(IMAGE1): ../utillib/$(LIB).c ../../../libs/$(LIB1).c $(CSRC)
+ 	$(HIDE)mkdir -p $(BINDIR)
+-	$(HIDE)gcc -DMACHINEID=2 -DMACHINEIDS="\"CPUC\"" $(CFLAGS) $^ -o $(BINDIR)/$@ $(LDFLAGS)
++	$(HIDE)$(CCACHE) gcc -DMACHINEID=2 -DMACHINEIDS="\"CPUC\"" $(CFLAGS) $^ -o $(BINDIR)/$@ $(LDFLAGS)
+ 
+ 
+ clean:
+Index: tools/remote_black_board/gbus/src/utillib/gbus_utillib.c
+===================================================================
+--- tools/remote_black_board/gbus/src/utillib/gbus_utillib.c	(revision 936)
++++ tools/remote_black_board/gbus/src/utillib/gbus_utillib.c	(working copy)
+@@ -37,6 +37,17 @@
+ 
+ #include "sil0_debugmacros.h"
+ 
++#if 1
++#define debugprintf1(aaa...) 
++#else
++#define debugprintf1(aaa...)  {                 \
++    struct timespec tp;        \
++    clock_gettime(CLOCK_REALTIME, &tp); \
++    fprintf(stdout,"[ %lu : %6lu ] ", tp.tv_sec, tp.tv_nsec/1000U); \
++    fprintf(stdout, aaa);	\
++    fflush(stdout);            \
++  }
++#endif
+ 
+ /*******************************************************************************
+  * INCLUDES
+@@ -440,11 +451,11 @@
+         if (remote->direction == C_TO_AB)
+         {
+             remote->size_from = ch_size;
+-            remote->size_to = 4;
++            remote->size_to = 4; /* ACK SIZE */
+         }
+         else
+         {
+-            remote->size_from = 4;
++            remote->size_from = 4; /* ACK SIZE */
+             remote->size_to = ch_size;
+         }
+ 
+@@ -567,10 +578,11 @@
+     {
+         shutdown(sock->socket, SHUT_RDWR);
+         close(sock->socket);
+-        sock->socket = 0;
+-        sock->port = -1;
+-        memset(&(sock->sa), 0, sizeof(sock->sa));
+     }
++    sock->socket = 0;
++    sock->connfd = -1;
++    sock->port = -1;
++    memset(&(sock->sa), 0, sizeof(sock->sa));
+ 
+     return GBUS_SUCCESS;
+ }
+@@ -722,7 +734,7 @@
+ 
+     if (bytes != size)
+     {
+-        errorprintf("GBUS: fatal error send() SHORT WRITE Curr: %u Exp: %u\n",
++        errorprintf("GBUS: fatal error send() SHORT WRITE Curr: %lu Exp: %u\n",
+                     bytes, size);
+ 
+         return GBUS_FATAL_ERROR_SOCKET_SHORT_WRITE;
+@@ -754,6 +766,8 @@
+     tv.tv_sec = timeout / 1000;
+     tv.tv_usec = timeout % 1000;
+ 
++    debugprintf1("GBUS: gbus_receivePacket try to receive %d bytes\n", size);
++
+     ret = select(fd + 1, &fds, NULL, NULL, &tv);
+ 
+     if (ret < 0)
+@@ -776,12 +790,14 @@
+ 
+     if (bytes < size)
+     {
+-        errorprintf("GBUS: fatal error recv() SHORT READ Curr: %u Exp: %u\n",
++        errorprintf("GBUS: fatal error recv() SHORT READ Curr: %lu Exp: %u\n",
+                     bytes, size);
+ 
+         return GBUS_FATAL_ERROR_SOCKET_SHORT_READ;
+     }
+ 
++    debugprintf1("GBUS: gbus_receivePacket received %ld bytes\n", bytes);
++    
+     return GBUS_SUCCESS;
+ }
+ 
+@@ -1463,6 +1479,7 @@
+             }
+             else
+             {
++                debugprintf1("GBUS: gbus_remoteSocketReceive Header OK\n");
+                 /* correct header, receive payload */
+                 ret = gbus_receivePacket(io->sock->connfd, packet + sizeof(*header),
+                                          header->len, timeout);
+@@ -1546,6 +1563,7 @@
+                     stop = 1;
+                     remote->seq_num = header->seq_num + 1;
+                 }
++                debugprintf1("packet is valid \n");
+             }
+ 
+             pthread_mutex_unlock(&remote->lock);

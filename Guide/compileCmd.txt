@@ -1,0 +1,1 @@
+ arm-linux-gnueabihf-gcc -g3 -Wall -static -o test test.c

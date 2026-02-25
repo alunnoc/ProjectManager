@@ -1,0 +1,63 @@
+NODO B
+IRQH mask
+
+map -l 0xdf450004 =0x8f338f33  unlock regFile irqh
+map -l 0xdf5afff8 =0x70cc70cc
+
+map -l 0xdf450018 =0x0000000f  set irq mask 
+map -l 0xdf5affe4 =0xfffffff0
+
+map -l 0xdf450008 =0x0f0f0f0f  rst irq
+map -l 0xdf5afff4 =0xf0f0f0f0
+
+WD
+
+map -l 0xdf400004 =0x8f338f33  unlock regFile Wd
+map -l 0xdf5ffff8 =0x70cc70cc
+
+map -l 0xdf40001c =0xdddddddd  set low thr
+map -l 0xdf5fffe0 =0x22222222
+
+map -l 0xdf400020 =0xeeeeeeee  set high thr
+map -l 0xdf5fffdc =0x11111111
+
+map -l 0xdf40002c =0xbadabada  enable wd
+map -l 0xdf5fffd0 =0x45254525 
+
+map -l 0xdf400024 =0x69696969  rest wd
+map -l 0xdf5fffd8 =0x96969696
+
+map -l 0xdf400008 =0x0f0f0f0f  rest irq
+map -l 0xdf5ffff4 =0xf0f0f0f0
+
+map -l 0xdf40002c =0x45254525  disable wd
+map -l 0xdf5fffd0 =0xbadabada 
+
+NODO A
+IRQH mask
+
+map -l 0xf7450004 =0x8f338f33  unlock regFile irqh
+map -l 0xf75afff8 =0x70cc70cc
+
+map -l 0xf7450018 =0x0000ffff  set irq mask 
+map -l 0xf75affe4 =0xffff0000
+
+WD
+
+map -l 0xf7400004 =0x8f338f33  unlock regFile Wd
+map -l 0xf75ffff8 =0x70cc70cc
+
+map -l 0xf740001c =0xeeeeeeee  set low thr
+map -l 0xf75fffe0 =0x11111111
+
+map -l 0xf7400020 =0xfffffffe  set high thr
+map -l 0xf75fffdc =0x00000001
+
+map -l 0xf740002c =0xbadabada  enable wd
+map -l 0xf75fffd0 =0x45254525 
+
+map -l 0xf7400024 =0x69696969  rest wd
+map -l 0xf75fffd8 =0x96969696
+
+map -l 0xf7400008 =0x0f0f0f0f  rest irq
+map -l 0xf75ffff4 =0xf0f0f0f0

@@ -1,0 +1,5 @@
+map -l 0x91100060 =0x15         -- phy address
+map -l 0x91100068 =0xC003       -- wdata
+map -l 0x91100064 =0xFFFF0001   -- WriteStartCommand(31 downto 16) + reg Address(15 downto 0);
+
+map -l 0x91100064 =0x00000001   -- ReadStartCommand(31 downto 16) + reg Address(15 downto 0);

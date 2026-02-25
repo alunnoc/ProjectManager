@@ -1,0 +1,19 @@
+state wait_for_4th_rising_edge_of_abc:
+  if ((spw_generate[2].spw_regfile_master_instance/s_sm_run_mode_status == 4'b0000) && (spw_generate[2].spw_regfile_master_instance/s_sm_status == 4'b0110) && (spw_generate[2].spw_regfile_master_instance/s_sm_rx_status == 4'b0000) && ($counter0 == 16'h0600)) then
+    reset_counter $counter0;
+    trigger;
+  elseif ((spw_generate[2].spw_regfile_master_instance/s_sm_run_mode_status == 4'b0000) && (spw_generate[2].spw_regfile_master_instance/s_sm_status == 4'b0110) && (spw_generate[2].spw_regfile_master_instance/s_sm_rx_status == 4'b0000)) then
+    increment_counter $counter0;
+    goto wait_for_4th_rising_edge_of_abc;
+  else
+    goto reset_counter_state;
+  endif
+
+
+state reset_counter_state:
+  if (spw_generate[2].spw_regfile_master_instance/s_sm_rx_status != 4'b0000) then
+    reset_counter $counter0;
+    goto wait_for_4th_rising_edge_of_abc;
+  else
+    goto wait_for_4th_rising_edge_of_abc;
+  endif

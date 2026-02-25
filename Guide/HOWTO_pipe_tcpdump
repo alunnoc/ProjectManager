@@ -1,0 +1,19 @@
+# HOW_TO remote network capture using tcpdump and pipe the output to local wireshark
+
+
+- creare una fifo
+$> mkfifo <path/to/fifoName.fifo>
+
+- lanciare wireshark in background
+--- -k : Start the capture session immediately.
+--- -n : Disable network object name resolution
+--- -i : capture interface file
+$> wireshark -kni <path/to/fifoName.fifo> &
+
+- lanciare tcpdump remoto e salvare l'output nella fifo
+--- -s 0 : snarf 0 bytes of data from each packet rather than the default of 262144 bytes
+--- -n   : Don't convert addresses
+--- -w - : log to stdout
+--- -U   : as each packet is saved, it will be written to the output file
+--- -i   : network interface
+$> sshpass -p <passwd> ssh <name>@<address> 'tcpdump -s 0 -n -w - -U -i <interface>' >  <path/to/fifoName.fifo>

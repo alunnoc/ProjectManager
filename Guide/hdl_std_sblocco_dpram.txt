@@ -1,0 +1,3 @@
+sbloccare dpram dal regfile della tas
+c0800038 7f337f33
+c0bfffc4 80cc80cc

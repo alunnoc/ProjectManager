@@ -1,0 +1,15 @@
+run loadfpga
+mw 40500024 22ec0f16    --reconfig
+mw 40500010 c0a82a6c    -- imposta IP 192.168.42.108
+
+
+mw 4050441c 10000000    -- setta l'address della memoria tx
+
+mw 40504440 c0a82a01    -- Ip di dest 192.168.42.1
+mw 40504444 d431        -- imposta porta di dest 54321  
+mw 40504420 190         -- imposta size da mandare
+
+mw 40504424 77757A27    -- invio pacchetto
+
+il primo invio è l'arp
+

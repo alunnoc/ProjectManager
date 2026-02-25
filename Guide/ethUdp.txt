@@ -1,0 +1,2 @@
+./networkPeer 192.168.42.108 104 -D RXONLY -O 400 -T 0 -u -s 192.168.42.1 -p 54321
+./ethTest_xilinx_soc 100 -d TXONLY -U 54321 -n 100 -s 4 

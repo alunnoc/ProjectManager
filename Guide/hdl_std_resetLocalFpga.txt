@@ -1,0 +1,38 @@
+unlock regFiles
+map -l 0xf7460004 =0x8f338f33
+map -l 0xf759fff8 =0x70cc70cc
+
+reset local fpga
+map -l 0xf7460018 =0xf8caf8ca
+map -l 0xf759ffe4 =0x07350735
+
+reset local cpu
+map -l 0xf7460018 =0x70CAC800
+map -l 0xf759ffe4 =0x8F3537FF
+
+reset remote cpu
+map -l 0xf7460018 =0x2300C800
+map -l 0xf759ffe4 =0xDCFF37FF
+
+
+
+
+per la devBoard dualNode
+
+map -l 0xf5060004 =0x8f338f33
+map -l 0xf519fff8 =0x70cc70cc
+
+reset local fpga
+map -l 0xf5060018 =0xf8caf8ca
+map -l 0xf519ffe4 =0x07350735
+
+
+SOC A
+unlock
+map -l 0x40060004 =0x8f338f33
+map -l 0x4019fff8 =0x70cc70cc
+
+reset remote cpu
+map -l 0x40060018 =0x2300C800
+map -l 0x4019ffe4 =0xDCFF37FF
+map -l 0x40060018 =0x2300C8ff

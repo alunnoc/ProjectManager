@@ -124,6 +124,25 @@ export interface SearchResult {
   events: ProjectEvent[];
 }
 
+export interface GuideStep {
+  id: string;
+  guideId: string;
+  title: string;
+  content: string | null;
+  order: number;
+  createdAt: string;
+}
+
+export interface Guide {
+  id: string;
+  title: string;
+  description: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+  steps: GuideStep[];
+}
+
 export interface ProjectConfigSection {
   id: string;
   projectId: string;

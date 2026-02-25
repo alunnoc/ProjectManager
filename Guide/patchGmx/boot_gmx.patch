@@ -1,0 +1,213 @@
+--- /home/adani/work/GeminiX-release_2.2.2_svn835/boot/src/linux/boot_gmx.c	2020-02-05 17:10:54.000000000 +0100
++++ boot_gmx.c	2021-05-06 10:28:04.511172549 +0200
+@@ -1,36 +1,20 @@
+ /***************************************************************************//**
+  *
+- * GeminiX (C) NEAT S.r.l.
+- *
+  * GeminiX-OS POSIX Loader.
+  *
+  * This file implements a GeminiX-OS application loader in a POSIX environment.
+  *
++ * @file: boot_gmx.c
++ * $Author: casolaro $
++ * $Revision: 11717 $
++ * $Date: 2020-10-09 12:28:51 +0200 (Fri, 09 Oct 2020) $
+  *
+- * @file: ./tools/support/target_linux/boot/src/linux/boot_gmx.c
+- *
+- * $Author: NEAT s.r.l.
+- * $Date: 04/02/2020
+- *
+- * History:
+- *
++ * History
+  * Version     Date      Author         Change Description
+  *
+- *- 2.2.2    04/02/2020 NEAT S.r.l. GeminiX-OS Remote-BB CortexA9 Baseline Release Candidate
+- *- 2.2.1    29/09/2019 NEAT S.r.l. GeminiX-OS Remote-BB CortexA9 Baseline Release Candidate
+- *- 2.1.2    04/05/2018 NEAT S.r.l. GeminiX-OS Baseline Release Candidate 
+- *- 2.1.1    24/04/2018 NEAT S.r.l. GeminiX-OS Baseline Release Candidate 
+- *- 2.0.9    30/11/2017 NEAT S.r.l. GeminiX-OS Baseline Release Candidate
+- *- 2.0.8    20/11/2017 NEAT S.r.l. GeminiX-OS Baseline Beta release
+- *- 2.0.7    17/02/2017 NEAT S.r.l. GeminiX-OS x86 Beta release7
+- *- 2.0.6    23/09/2016 NEAT S.r.l. GeminiX-OS x86 Beta release6
+- *- 2.0.5    11/07/2016 NEAT S.r.l. GeminiX-OS x86 Beta release5
+- *- 2.0.4    28/06/2016 NEAT S.r.l. GeminiX-OS pxa/5407 Beta release4
+- *- 2.0.3    21/06/2016 NEAT S.r.l. GeminiX-OS x86 pre-release3
+- *- 2.0.2    11/12/2015 NEAT S.r.l. GeminiX-OS x86 pre-release2
+- *- 2.0.1    30/11/2015 NEAT S.r.l. GeminiX-OS x86 pre-release
++ *- $Id: boot_gmx.c 11717 2020-10-09 10:28:51Z casolaro $
+  *
+- ***************************************************************************/
++ ******************************************************************************/
+ /*
+   procedura:
+ 
+@@ -185,6 +169,8 @@
+ #define PFLASH_SADDR                        (FLASH_SADDR)
+ #define NFLASH_SADDR                        (MIRRORED_ADDR8(PFLASH_SADDR + FLASH_SIZE) + 1U)
+ 
++#define USRFLASH_SIZE                       (FLASH_SIZE)
++
+ 
+ #define MAX_IFS     4
+ #define MAX_SOCKETS 256
+@@ -198,6 +184,7 @@
+ 
+ #define OPT_DEF_FRAM_FILENAME               "fram"
+ #define OPT_DEF_NVRAM_FILENAME              "nvram"
++#define OPT_DEF_USRFLASH_FILENAME           "usrflash"
+ 
+ 
+ #define OPT_IF_NO_MULTI                     "off"
+@@ -365,6 +352,7 @@
+     char_t*     image;
+     char_t*     fram;
+     char_t*     nvram;
++    char_t*     usrflash;
+     char_t*     fpga;
+     char_t*     symbol_file;
+     br_t        bridges[MAX_BR];
+@@ -408,6 +396,7 @@
+ static sint32_t memfd    = -1;
+ static sint32_t nvramfd = -1;
+ static sint32_t framfd  = -1;
++static sint32_t usrflashfd  = -1;
+ static sint32_t imagefd  = -1;
+ static sint32_t shmfd    = -1;
+ static sint32_t dpramfd  = -1;
+@@ -489,6 +478,7 @@
+     NULL,                         /*  char_t*     image;                */
+     OPT_DEF_FRAM_FILENAME,        /*  char_t*     fram;                 */
+     OPT_DEF_NVRAM_FILENAME,       /*  char_t*     nvram;                */
++    OPT_DEF_USRFLASH_FILENAME,    /*  char_t*     usrflash;             */
+     NULL,                         /*  char_t*     fpga;                 */
+     NULL,                         /*  char_t*     symbol_file;          */
+     { },                          /*  br_t        bridges[MAX_BR];      */
+@@ -650,6 +640,28 @@
+ );
+ 
+ 
++static sint32_t extern_initUSRFLASH
++(
++    void
++);
++
++
++static sint32_t extern_writeUSRFLASH
++(
++    const uint32_t offset,
++    const void* const buff,
++    const uint32_t size
++);
++
++
++static sint32_t extern_readUSRFLASH
++(
++    void* const buff,
++    const uint32_t offset,
++    const uint32_t maxSize
++);
++
++
+ static sint32_t extern_write
+ (
+     const sint32_t fd,
+@@ -1423,6 +1435,49 @@
+ }
+ 
+ 
++static sint32_t extern_initUSRFLASH
++(
++    void
++)
++{
++    return (initFile(&usrflashfd, options.usrflash, USRFLASH_SIZE));
++}
++
++
++static sint32_t extern_writeUSRFLASH
++(
++    const uint32_t offset,
++    const void* const buff,
++    const uint32_t size
++)
++{
++    sint32_t sent = 0;
++
++    lseek(usrflashfd, offset, SEEK_SET);
++    sent = writeAll(usrflashfd, buff, size);
++
++    fsync(usrflashfd);
++
++    return (sent);
++}
++
++
++static sint32_t extern_readUSRFLASH
++(
++    void* const buff,
++    const uint32_t offset,
++    const uint32_t maxSize
++)
++{
++    sint32_t valid = 0;
++
++    lseek(usrflashfd, offset, SEEK_SET);
++    valid = readAll(usrflashfd, buff, maxSize);
++
++    return (valid);
++}
++
++
+ static sint32_t extern_initUART
+ (
+     const sint32_t fd
+@@ -2916,6 +2971,9 @@
+     extern_initNVRAM,
+     extern_writeNVRAM,
+     extern_readNVRAM,
++    extern_initUSRFLASH,
++    extern_writeUSRFLASH,
++    extern_readUSRFLASH,
+     extern_initUART,
+     extern_initETH,
+     extern_initSocket,
+@@ -3767,6 +3825,9 @@
+     printf("    -fram <fram>\n"
+            "        use file <fram>_<node>.bin as FRAM device; default: \"%s_<node>.bin\".\n\n",
+            OPT_DEF_FRAM_FILENAME);
++    printf("    -usrflash <usrflash>\n"
++           "        use file <usrflash>_<node>.bin as USER FLASH device; default: \"%s_<node>.bin\".\n\n",
++           OPT_DEF_USRFLASH_FILENAME);
+ 
+     printf("    -nvram <nvram>\n"
+            "        use file <nvram>_<node>.bin as NVRAM device; default: \"%s_<node>.bin\".\n\n",
+@@ -3883,6 +3944,13 @@
+             opt->fram = argv[i + 1];
+             i++;
+         }
++        else if (!strcmp(argv[i], "-usrflash"))
++        {
++            REQUIRE_ARG(argc - i, &(argv[i]));
++
++            opt->usrflash = argv[i + 1];
++            i++;
++        }
+         else if (!strcmp(argv[i], "-nvram"))
+         {
+             REQUIRE_ARG(argc - i, &(argv[i]));
+@@ -4325,6 +4393,12 @@
+         exit(1);
+     }
+ 
++    if ((!extern_initUSRFLASH()) || (usrflashfd < 0))
++    {
++        err_printf("cannot open/create USER FLASH file.\n");
++        exit(1);
++    }
++
+     if (options.flags & FLAGS_RESETVC)
+     {
+         uint32_t framResetBlock[] =

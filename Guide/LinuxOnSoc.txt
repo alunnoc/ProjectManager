@@ -1,0 +1,196 @@
+XILINX
+run default_bootcmd
+
+
+arch=arm
+autoload=no
+autosetup_qspi=sf probe && fatload mmc 0 100000 $fpgabit && sf erase 0 600000 && sf write 100000 0 50
+0000 && saveenv && echo WARNING : please set ethaddr and eth1addr properly!
+baudrate=115200
+board=zynq
+board_name=zynq
+boot_img=BOOT.BIN
+bootcmd=run loadfpga && run userbootcmd
+bootdelay=4
+bootenv=uEnv.txt
+bootenvsize=0x20000
+bootenvstart=0x500000
+bringUpTest=fatload mmc 0 100000 bringUp_xilinx.scr && source 100000
+clobstart=0x10000000
+console=console=ttyPS0,115200
+cp_kernel2ram=mmcinfo && fatload mmc ${sdbootdev} ${netstart} ${kernel_img}
+cpu=armv7
+default_bootcmd=run uenvboot; run cp_kernel2ram && bootm ${netstart}
+dtb_img=system.dtb
+dtbnetstart=0x23fff000
+eraseenv=sf probe 0 && sf erase ${bootenvstart} ${bootenvsize}
+eth1addr=84:39:BE:51:00:00
+ethaddr=84:39:BE:51:00:00
+fault=echo ${img} image size is greater than allocated place - partition ${img} is NOT UPDATED
+fdtcontroladdr=1ffa7b30
+fileaddr=100000
+filesize=465390
+fpgabit=boot.bin
+importbootenv=echo "Importing environment from SD ..."; env import -t ${loadbootenv_addr} $filesize
+install_boot=mmcinfo && fatwrite mmc ${sdbootdev} ${clobstart} ${boot_img} ${filesize}
+install_jffs2=sf probe 0 && sf erase ${jffs2start} ${jffs2size} && sf write ${clobstart} ${jffs2start
+} ${filesize}
+install_kernel=mmcinfo && fatwrite mmc ${sdbootdev} ${clobstart} ${kernel_img} ${filesize}
+jffs2_img=rootfs.jffs2
+kernel_img=image.ub
+load_boot=tftpboot ${clobstart} ${boot_img}
+load_dtb=tftpboot ${clobstart} ${dtb_img}
+load_jffs2=tftpboot ${clobstart} ${jffs2_img}
+load_kernel=tftpboot ${clobstart} ${kernel_img}
+loadaddr=0x10000000
+loadbootenv=load mmc $sdbootdev:$partid ${loadbootenv_addr} ${bootenv}
+loadbootenv_addr=0x00100000
+loadfpga=mii write 0x15 0x1 0x803e
+modeboot=qspiboot
+nc=setenv stdout nc;setenv stdin nc;
+netboot=tftpboot ${netstart} ${kernel_img} && bootm
+netstart=0x10000000
+psserial0=setenv stdout ttyPS0;setenv stdin ttyPS0
+sd_uEnvtxt_existence_test=test -e mmc $sdbootdev:$partid /uEnv.txt
+sd_update_dtb=echo Updating dtb from SD; mmcinfo && fatload mmc ${sdbootdev}:1 ${clobstart} ${dtb_img
+} && run install_dtb
+sd_update_jffs2=echo Updating jffs2 from SD; mmcinfo && fatload mmc ${sdbootdev}:1 ${clobstart} ${jff
+s2_img} && run install_jffs2
+sdbootdev=0
+serial=setenv stdout serial;setenv stdin serial
+serverip=10.0.2.15
+soc=zynq
+stderr=serial@e0001000
+stdin=serial@e0001000
+stdout=serial@e0001000
+test_crc=if imi ${clobstart}; then run test_img; else echo ${img} Bad CRC - ${img} is NOT UPDATED; fi
+test_img=setenv var "if test ${filesize} -gt ${psize}; then run fault; else run ${installcmd}; fi"; r
+un var; setenv var
+trySyncDelaySec=30
+ubootversion=giga_r5
+uenvboot=if run sd_uEnvtxt_existence_test; then run loadbootenv; echo Loaded environment from ${boote
+nv}; run importbootenv; fi; if test -n $uenvcmd; then echo Running uenvcmd ...; run uenvcmd; fi
+update_boot=setenv img boot; setenv psize ${bootsize}; setenv installcmd "install_boot"; run load_boo
+t ${installcmd}; setenv img; setenv psize; setenv installcmd
+update_dtb=setenv img dtb; setenv psize ${dtbsize}; setenv installcmd "install_dtb"; run load_dtb tes
+t_img; setenv img; setenv psize; setenv installcmd
+update_jffs2=setenv img jffs2; setenv psize ${jffs2size}; setenv installcmd "install_jffs2"; run load
+_jffs2 test_img; setenv img; setenv psize; setenv installcmd
+update_kernel=setenv img kernel; setenv psize ${kernelsize}; setenv installcmd "install_kernel"; run 
+load_kernel ${installcmd}; setenv img; setenv psize; setenv installcmd
+userbootcmd=tryDhcp; tftpboot 1000000;source 1000000
+vendor=xilinx
+
+Environment size: 3705/131068 bytes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ALTERA
+run laodfpga; run mmcload; run mmcboot
+
+
+
+arch=arm
+autosetup_qspi=sf probe && fatload mmc 0 100000 $fpgabit && sf erase 0 800000 && sf write 100000 0 80
+0000 && saveenv && echo WARNING : please set ethaddr and eth1addr properly!
+axibridge=ffd0501c
+axibridge_handoff=0x00000000
+baudrate=115200
+board=socfpga
+board_name=socfpga
+bootargs=console=ttyS0,115200
+bootcmd=run loadfpga && run userbootcmd
+bootdelay=5
+bootenvsize=0x20000
+bootenvstart=0x800000
+bootimage=zImage
+bootimagesize=0x600000
+bootpretrycount=2
+bridge_disable=mw $fpgaintf 0; mw $fpga2sdram 0; go $fpga2sdram_apply; mw $axibridge 0; mw $l3remap 0
+x1 
+bridge_enable_handoff=mw $fpgaintf ${fpgaintf_handoff}; go $fpga2sdram_apply; mw $fpga2sdram ${fpga2s
+dram_handoff}; mw $axibridge ${axibridge_handoff}; mw $l3remap ${l3remap_handoff} 
+bringUpTest=run loadfpga && fatload mmc 0 1000000 bringUp_altera.scr && source 1000000
+callscript=if fatload mmc 0:1 $fpgadata $scriptfile;then source $fpgadata; else echo Optional boot sc
+ript not found. Continuing to boot normally; fi;
+cpu=armv7
+eraseenv=sf probe && sf erase $bootenvstart $bootenvsize
+eth1addr=84:39:BE:52:00:00
+ethact=mii0
+ethaddr=84:39:BE:52:00:00
+fdtaddr=0x00000100
+fdtimage=socfpga.dtb
+fdtimagesize=0x7000
+filesize=0x6aebe4
+fpga=0
+fpga2sdram=ffc25080
+fpga2sdram_apply=3ff78598
+fpga2sdram_handoff=0x00000fff
+fpgabit=altera.bin
+fpgadata=0x2000000
+fpgadatasize=0x700000
+fpgaintf=ffd08028
+fpgaintf_handoff=0x00000000
+fpgarbf=echo "Please set variable"
+l3remap=ff800000
+l3remap_handoff=0x00000019
+loadaddr=0x8000
+loadfpga=run loadfpga_qspi
+loadfpga_qspi=sf probe && sf read 100000 100000 700000 && fpga load 0 100000 700000 && run bridge_ena
+ble_handoff && sleep 2 && mii write 0x16 0x1 0xc03d && mii write 0x15 0x1 0x803e
+loadfpga_sd=fatload mmc 0 100000 $fpgarbf && fpga load 0 100000 700000 && run bridge_enable_handoff &
+& sleep 2 && mii write 0x16 0x1 0xc03d && mii write 0x15 0x1 0x803e
+micrel-ksz9021-clk-skew=0xf0f0
+micrel-ksz9021-data-skew=0x0
+mmcboot=setenv bootargs console=ttyS0,115200 root=${mmcroot} rw rootwait;bootz ${loadaddr} - ${fdtadd
+r}
+mmcload=mmc rescan;${mmcloadcmd} mmc 0:${mmcloadpart} ${loadaddr} ${bootimage};${mmcloadcmd} mmc 0:${
+mmcloadpart} ${fdtaddr} ${fdtimage}
+mmcloadcmd=fatload
+mmcloadpart=1
+mmcroot=/dev/mmcblk0p2
+nandboot=setenv bootargs console=ttyS0,115200 root=${nandroot} rw rootfstype=${nandrootfstype};bootz 
+${loadaddr} - ${fdtaddr}
+nandbootimageaddr=0x120000
+nandfdtaddr=0xA0000
+nandload=nand read ${loadaddr} ${nandbootimageaddr} ${bootimagesize};nand read ${fdtaddr} ${nandfdtad
+dr} ${fdtimagesize}
+nandroot=/dev/mtdblock1
+nandrootfstype=jffs2
+netboot=dhcp ${bootimage} ; tftp ${fdtaddr} ${fdtimage} ; run ramboot
+qspiboot=setenv bootargs console=ttyS0,115200 root=${qspiroot} rw rootfstype=${qspirootfstype};bootz 
+${loadaddr} - ${fdtaddr}
+qspibootimageaddr=0xa0000
+qspifdtaddr=0x50000
+qspiload=sf probe ${qspiloadcs};sf read ${loadaddr} ${qspibootimageaddr} ${bootimagesize};sf read ${f
+dtaddr} ${qspifdtaddr} ${fdtimagesize};
+qspiloadcs=0
+qspiroot=/dev/mtdblock1
+qspirootfstype=jffs2
+ramboot=setenv bootargs console=ttyS0,115200;bootz ${loadaddr} - ${fdtaddr}
+scriptfile=u-boot.scr
+setenv_ethaddr_eeprom=3ff99bed
+soc=socfpga
+stderr=serial
+stdin=serial
+stdout=serial
+trySyncDelaySec=30
+ubootversion=giga_r6.2
+userbootcmd=tryDhcp;tftpboot 1000000;source 1000000
+vendor=altera
+verify=n
+
+Environment size: 3454/4092 bytes
+

@@ -1,0 +1,13 @@
+Index: baselib/src/blib_stdio.c
+===================================================================
+--- baselib/src/blib_stdio.c	(revision 871)
++++ baselib/src/blib_stdio.c	(working copy)
+@@ -771,6 +771,8 @@
+             {
+                 TKN_CHK1(blib_getc(&tmpC, TKN1));
+ 
++                /* ZZZZ force 'c' */
++                tmpC='s';
+                 if (tmpC != EOF)        /* @debugger BP 1,2,3,5: tmpC */
+                 {
+                     TKN_CHK2(blib_putc(tmpC, TKN2));

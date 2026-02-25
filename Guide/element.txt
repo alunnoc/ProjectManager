@@ -1,0 +1,7 @@
+passphrase element: Iononvogliolavorare
+security key: EsTG RCpM 7984 knJK wCdM 9bSF 4h7t mN4p S1wq 3WuF 6Kkm XG4h oppure EsU9 iSLy tmPn fdaf 8n51 V6B2 Wq8p eD3Z XRZu Ziep rVGm oFqh
+psw : elio.matrix;
+
+server: matrix.neat.it
+utente: elio.alunno
+

@@ -1,0 +1,11 @@
+Unlock regFile
+map -l 0xf7440004 =0x8f338f33
+map -l 0xf75bfff8 =0x70cc70cc
+
+Write configuration to test
+map -l 0xf7440024 =0xfffffffe
+map -l 0xf75bffd8 =0x00000001
+
+Start Command
+map -l 0xf744001c =0x54455431
+map -l 0xf75bffe0 =0xabbaabce

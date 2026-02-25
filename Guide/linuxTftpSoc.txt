@@ -1,0 +1,8 @@
+Zynq
+bootcmd = mii write 0x15 0x1 0x803e; run tryDhcp, run tftpboot 1000000 soc_boot/boot_xilinx; source 1000000
+tryDhcp = if dhcp; then echo yes; else run tryDhcp; fi;
+
+
+Altera 
+bootcomd = run loadfpga; mii write 0x16 0x1 0xc03d;mii write 0x15 0x1 0x803e; run tryDhcp; source 1000000 (go 1000000 per gmx)
+tryDhcp = if dhcp 1000000;then echo yes;else run tryDhcp;fi

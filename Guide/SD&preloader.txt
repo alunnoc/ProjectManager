@@ -1,0 +1,408 @@
+##################################
+## PREPARARE XILINX
+##################################
+
+###########################
+## DA WINDOWS
+
+0) utilizzare Vivado 2017.1 o 2018.2
+
+1) svn co https://pcdata.neat/svn/GeminiX (se non è già stato fatto)
+
+2) aprire tcl console di Vivado 2017.1 2018.2
+
+3) cd GeminiX/trunk/hdl/tools
+
+4) source ./gmx_app_create_xc7z020_Vivado_2017.1_prj.tcl
+4a) source ./gmx_app_create_xc7z020_Vivado_2018.2_prj.tcl
+
+5) click su "generate bitstream"
+
+6) file -> export hardware -> esportare gmx_app_core_xc7z020_top.hdf da utilizzare nei seguenti passaggi.
+
+###########################
+## DA LINUX
+
+0) Eseguire un check out di GeminiX
+$ svn co https://pcdata.neat/svn/GeminiX (se non è già stato fatto)
+
+###########################
+## SOLO PER VIVADO/SDK 2017.1
+0)  utilizzare petalinux 2017.1 e SDK 2017.1 (già installati nella macchina virtuale in //PCDATA/archive/HARDWARE/Xilinx/petalinux_2017.1.ova)
+
+1)  cp patch_zynq/NEAT_XILINX_PETALINUX_2017.01.patch ~/<PETALINUX_INTALL_DIR>/components/yocto/source/arm/layers/meta-xilinx/recipes-bsp/u-boot/u-boot/
+
+2)  cp patch_zynq/u-boot-xlnx_v2017.1.inc. ~/<PETALINUX_INTALL_DIR>/components/yocto/source/arm/layers/meta-xilinx/recipes-bsp/u-boot/u-boot-xlnx.inc
+
+###########################
+## SOLO PER VIVADO/SDK 2018.2
+0)  Utilizzare petalinux 2018.2 e SDK 2018.2 (già installati nella macchina virtuale in //PCDATA/archive/HARDWARE/Xilinx/petalinux_2018.2.ova)
+
+In questa macchina virtuale risulta già presente il file di patch patch_zynq/NEAT_XILINX_PETALINUX_2018.02.patch in ~/<PETALINUX_INSTALL_DIR>/components/yocto/source/arm/layers/meta-xilinx/meta-xilinx-bsp/recipes-bsp/u-boot/u-boot-xlnx/v2018.2/ che è la directory dove sono presenti le patch di uboot.
+Inoltre, è stato editato il file ~/<PETALINUX_INSTALL_DIR>/components/yocto/source/arm/layers/meta-xilinx/meta-xilinx-bsp/recipes-bsp/u-boot/u-boot-xlnx.inc per dire al compilatore che c'è la nuova patch da prendere, ed è già stato aggiunto il path del file di patch alla variabile SRC_URI = "${UBOOTURI};${UBRANCHARG} file://NEAT_XILINX_PETALINUX_2018.02.patch".
+
+1)  Copiare il file di patch patch_zynq/NEAT_XILINX_MV88E6020_PETALINUX_2018.02.patch in ~/<PETALINUX_INSTALL_DIR>/components/yocto/source/arm/layers/meta-xilinx/meta-xilinx-bsp/recipes-kernel/linux/linux-xlnx/
+    che è la directory dove sono presenti le patch di Linux
+
+2)  Indicare al compilatore dove è stata copiata la patch da compilare assieme al kernel:
+    editare il file ~/<PETALINUX_INTALL_DIR>/components/yocto/source/arm/layers/meta-xilinx/meta-xilinx-bsp/recipes-kernel/linux/linux-xlnx.inc
+    aggiungere il file della patch alla variabile "SRC_URI_append"
+    esempio:
+       #SRC_URI_append = " file://xilinx-kmeta;type=kmeta;name=xilinx-kmeta;destsuffix=xilinx-kmeta"
+       SRC_URI_append = " file://xilinx-kmeta;type=kmeta;name=xilinx-kmeta;destsuffix=xilinx-kmeta \
+                          file://NEAT_XILINX_MV88E6020_PETALINUX_2018.02.patch"
+
+
+3)  copiare il file di device tree patch_zynq/system-user_xlnx_v2018.2.dtsi in ~/<PETALINUX_INTALL_DIR>/etc/template/project/common/project-spec/meta-user/recipes-bsp/device-tree/files
+    che è la directory dove sono presenti i DTSI
+  $ cp patch_zynq/system-user_xlnx_v2018.2.dtsi ~/<PETALINUX_INTALL_DIR>/etc/template/project/common/project-spec/meta-user/recipes-bsp/device-tree/files/.
+
+4)  Integrare le modifiche del file system-user_xlnx_v2018.2.dtsi in system-user.dtsi o copiarlo se non sono presenti altre info DTSI:
+  $ mv system-conf.dtsi system-conf.dtsi.ORIG
+  $ mv system-user_xlnx_v2018.2.dtsi system-user.dtsi
+
+
+###########################
+
+
+
+5) Esportare le variabili d'ambiente di petalinux
+$ export LANG=C; export LC_LANG=C; source ~/<PETALINUX_INTALL_DIR>/settings.sh;
+
+6) Creare il progetto
+$ petalinux-create --type project --template zynq --name <PROJECT_DIR>
+Ad esempio
+$ petalinux-create --type project --template zynq --name gmx_app_core_xc7z020_top
+
+7) Entrare nella cartella di progetto
+$ cd <PROJECT_DIR>
+
+8) Importare il file .hdf contentente la configurazione dell'hardware
+$ petalinux-config --get-hw-description=<PATH_TO_GEMINIX_HDF>
+Ad esempio
+$ petalinux-config --get-hw-description=../../GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/program/
+Si noti che non bisogna specificare il file .hdf, ma solo il path della directory che lo contiene.
+Inoltre, il file .hdf è specifico di ogni progetto.
+Uscire dal menù che si apre con exit, dire YES quando chiede se salvare
+
+9) Configurare il root file system
+$ petalinux-config -c rootfs
+Nel menù che si apre
+Abilitare: filesystem packages -> console -> network -> ethtool
+
+xx) Maybe the petalinux-config command returns an error due to limited space on HDD. 
+    It is possible to resize the .VDI file used by the virtual machine (for instance from 40GB to 80GB) following the procedure described at the end of this howto
+
+10) Configurare u-boot
+$ petalinux-config -c u-boot
+Nel menù che si apre
+Abilitare: Command line interface -> Memory commands -> memtest
+Disabilitare: Boot Images -> Enable signature verification of FIT uImages
+
+11) Configurare il kernel
+$ petalinux-config -c kernel
+Nel menù che si apre
+Abilitare: Device Drivers -> Network device support -> PHY Device support and infrastructure -> MDIO Bus/PHY emulation with fixed speed/link PHYs
+Abilitare: Device Drivers -> Network device support -> PHY Device support and infrastructure -> Xilinx GMII2RGMII converter driver
+
+Se si vuole utilizzare rootfs da nfs (o SD) è necessario rimuovere il filesystem integrato nell'immagine:
+Disabilitare: General Setup -> Initial RAM filesystem and RAM disk (initramfs/initrd) support
+
+12) Per evitare che i sorgenti locali di compilazione vengano eliminati: editare ./build/conf/local.conf
+  $ vi ./build/conf/local.conf
+ commentndo la riga qui sotto
+  # INHERIT+= "rm_work"
+
+13) Compilare 
+$ petalinux-build
+La directory contentente le immagini create dalla compilazione è images/linux/
+
+14) cp images/linux/zynq_fsbl.elf ../GeminiX/trunk/hdl/app/xc7z020/bin/
+
+15) cp images/linux/u-boot.elf ../GeminiX/trunk/hdl/app/xc7z020/bin/
+
+16) source ~/<SDK_INSTALL_DIR>/settings64.sh
+(controllare path dello script!!)
+In realtà dello script servono solo le righe per esportare bootgen e per creare BOOT.BIN. 
+Ad esempio
+$ bootgen -image boot.bif -arch zynq -o BOOT.BIN -w
+Dove in boot.bif ci sono i path al .bit ed agli .elf appena compilati
+
+##################################
+## PREPARARE ALTERA
+##################################
+
+## da windows
+
+0) svn co https://pcdata.neat/svn/GeminiX (se non è già stato fatto)
+
+1) aprire Quartus prime 18.1
+
+2) aprire tcl console
+
+3) cd GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts
+
+2) source ./SoC_DevBoard_2.1_5cseba6_Quartus_17.0.tcl
+
+3) file -> open project -> gmx_app_5cseba6_core_top
+
+4) run analysis&synthesis
+cd
+5) assignment -> remove assigmnents
+
+6) assignments -> import assignments -> cd GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/src/SoC_DevBoard_2.1_5cseba6.qsf
+
+7) cd GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6
+
+8) source db/ip/tds_core_arm_if/submodules/hps_sdram_p0_parameters.tcl
+
+8) source db/ip/tds_core_arm_if/submodules/hps_sdram_p0_pin_assignments.tcl
+
+9) run compile
+
+10) file -> convert programming file -> file type: rbf; output file: GeminiX/trunk/hdl/app/5cseba6/bin/gmx_app_5cseba6_core_top.rbf; sof file: GeminiX/trunk/hdl/tools/gmx_app_5cseba5_Quartus_prj/output_files/gmx_app_5cseba6_core_top.sof
+
+11) aprire SoC EDS 18.1
+
+12) cd /cygdrive/~/GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6
+
+13) bsp-editor.exe
+
+14) file > new HPS BSP > preloader settings directory > select GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6/hps_isw_handoff/
+
+15.1) per boot da QSPI: deselezionare boot SD, selezionare boot QSPI,
+
+15.2) per boot da SD: selezionare FAT SUPPORT, FAT_LOAD_PAYLOAD_NAME: u-boot.bin
+
+16) Advanced tab > deselect WATCHDOG_ENABLE and select SDRAM_SCRUBBING
+
+17) click generate, exit
+
+18) cd SoC_DevBoard_2.1_5cseba6/software/spl_bsp
+
+##################################################
+##### Solo per Windows 10
+18.1) commentare le righe del Makefile:
+
+#	@$(RM) $(PRELOADER_SRC_DIR)
+#	$(untar_recipe)
+
+18.2) lanciare dalla shell di SoC EDS 18.1 il comando: tar zxf /cygdrive/c/intelFPGA/18.1/embedded/host_tools/altera/preloader/uboot-socfpga.tar.gz
+##################################################
+
+
+19) cp /cygdrive/~/GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/procedures/patch_cyclone/NEAT_ALTERA_EDS_17.0 .
+
+20) make
+
+21) patch -p0 < NEAT_ALTERA_EDS_17.0
+
+22) make uboot
+
+23.1) (boot QSPI) cp preloader-mkpimage.bin ../../../../app/5cseba6/bin/boot_qspi/
+23.2) (boot QSPI) cp uboot-socfpga/u-boot.img ../../../../app/5cseba6/bin/boot_qspi/
+
+24.1) (boot SD) cp preloader-mkpimage.bin ../../../../app/5cseba6/bin/boot_sd/
+24.2) (boot SD) cp uboot-socfpga/u-boot.bin ../../../../app/5cseba6/bin/boot_sd/
+
+##################################
+## Generare QSPI image files
+##################################
+
+## da linux
+
+1) cd GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts
+
+2) ./SoC_DevBoard_2.1_generate.sh
+
+3) file immagine generati in GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/SD...
+
+##################################
+## Preparare immagine linux
+##################################
+
+## da linux
+
+## Installare l'ambiente Altera
+1) Accedere alla propria home
+$ cd
+2) Ricopiare script di installazione da pcdata
+$ scp <your_user_name>@pcdata:/notbackupped/bigarchive/HARDWARE/Altera/SoCEDSSetup-18.1.0.625-linux.run .
+3) Eseguirlo
+$ ./SoCEDSSetup-18.1.0.625-linux.run
+Consiglio: è preferibile installare i programmi di grandi dimensioni in /opt.
+Per poter selezionare tale cartella nella finestra di installazione,lanciare l'eseguibile con sudo 
+$ sudo ./SoCEDSSetup-18.1.0.625-linux.run
+
+## Generare il device tree
+4) Fare un check out di GeminiX
+$ svn co https://pcdata.neat.it/svn/GeminiX
+5) Mettersi nella directory giusta
+$ cd GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/
+$ mkdir -p SoC_DevBoard_2.1_5cseba6/software
+$ cd SoC_DevBoard_2.1_5cseba6/software
+6) Copiare il pacchetto per generare il device tree atlas_linux_ghrd.tar.gz (presente in PCDATA/archive/HARDWARE/Altera/) in
+   GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6/software
+$ scp <your_user_name>@pcdata:/notbackupped/bigarchive/HARDWARE/Altera/atlas_linux_ghrd.tar.gz .
+6bis) Scompattarlo ed accedere alla cartella
+$ tar -xzvf atlas_linux_ghrd.tar.gz
+$ cd atlas_linux_ghrd/
+
+7) copiare la patch eth0 per altera da 
+GeminiX/branches/developers/hdl_standards/test/hw_sw_integration/SoC_DevBoard_2_1_scripts/procedures/patch_cyclone/neat_ethernet0_info.xml 
+in 
+GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6/software/atlas_linux_ghrd/
+
+4) sopc2dts --input soc_system.sopcinfo/
+    --output soc_system.dts/
+    --type dts/
+    --board soc_system_board_info.xml/
+    --board hps_common_board_info.xml/
+    --board neat_ethernet0_info.xml/
+    --bridge-removal all/
+    --clocks
+
+E' possibile che il comando torni l'errore:
+Unable to add duplicate property 'ethernet0' to node 'aliases' labeled 'null'...
+Questo perchè l'alias 'ethernet0' è già stato definito in altri file (vedi hps_common_board_info.xml). Per risolvere il problema basterà eliminare o commentare (XML) la linea che definisce questo alias nei file non di patch (vedi hps_common_board_info.xml)
+
+L'eseguibile sopc2dts è compreso nell'ambiente Altera.
+
+
+
+5) Compilare il device tree blob
+$ dtc -I dts -O dtb -o soc_system.dtb soc_system.dts
+il compilatore dtc è compreso nell'ambiente Altera.
+
+## compilare il kernel
+
+6) cd GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6/software
+
+7) copiare il pacchetto con il cross-compilatore gcc-linaro-arm-linux-gnueabihf-4.9-2014.09_linux.tar.xz (presente in PCDATA/archive/HARDWARE/Altera/) in
+   GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6/software
+   $ scp <your_user_name>@pcdata:/notbackupped/bigarchive/HARDWARE/Altera/gcc-linaro-arm-linux-gnueabihf-4.9-2014.09_linux.tar.xz .
+
+8) Estrarlo 
+$ tar -xvf gcc-linaro-arm-linux-gnueabihf-4.9-2014.09_linux.tar.xz
+
+9) export CROSS_COMPILE=$PWD/gcc-linaro-arm-linux-gnueabihf-4.9-2014.09_linux/bin/arm-linux-gnueabihf-
+
+10) git clone https://github.com/altera-opensource/linux-socfpga.git
+
+11) cd linux-socfpga
+
+12) git checkout rel_socfpga-4.9.78-ltsi_18.10.02_pr
+
+13) make ARCH=arm socfpga_defconfig
+
+13) Installare le librerie libncurses
+ubuntu 
+$ sudo apt-get install libncurses5-dev
+fedora
+$ sudo dnf install ncurses-devel
+
+15) make ARCH=arm menuconfig
+
+16) deselezionare "Automatically append version information to the version string"
+    selezionare:
+    * I driver STMMAC @ Device Drivers -> Network device support -> Ethernet driver support -> STMicroelectonics devices [e tutti i relativi]
+    * MDIO Bus/PHY emulation with fixed speed/link PHYs @ Device Drivers->Network device support->PHY Device support and infrastructure
+    * Xilinx GMII2RGMII converter driver @ Device Drivers->Network device support->PHY Device support and infrastructure
+
+16bis) Per poter montare il file system read and write, selezionare:
+* Support for large (2TB+) block devices and files @ Enable the block layer -> Support for large (2TB+) block devices and files
+
+
+17) uscire e salvare la configurazione(file .config)
+
+18) copiare il file NEAT_CYCLONE_MV88E6020_LINUX_SOCFPGA.patch dalla directory GeminiX/branches/developers/hdl_standards/test/hw_sw_integration/SoC_DevBoard_2_1_scripts/procedures/patch_cyclone/ nella directory linux-socfpga/drivers/net/ethernet/stmicro ed eseguire:
+%> cd linux-socfpga/drivers/net/ethernet/stmicro/stmmac
+%> patch --dry-run -p1 -i ../NEAT_CYCLONE_MV88E6020_LINUX_SOCFPGA.patch
+Se non risultano errori, eseguire:
+%> patch -p1 -i ../NEAT_CYCLONE_MV88E6020_LINUX_SOCFPGA.patch
+
+Tornare alla cartella linux-socfpga
+19) make ARCH=arm LOCALVERSION=zImage
+
+##################################
+## Preparare SD
+##################################
+
+## da windows
+
+0) scrivere su SD l'immagine CycloneV_Linux_SDCard.img (presente in PCDATA/archive/HARDWARE/Altera/CycloneV_Linux_SDCard.tar.gz)
+
+1) aprire SoC EDS 18.1 (esegui da amministratore)
+
+2) cd /cygdrive/~/GeminiX/trunk/hdl/app/
+
+3) alt-boot-disk-util.exe -p ./5cseba6/bin/boot_sd/preloader-mkpimage.bin -a write -d <SD directory letter>
+
+4) cp ./5cseba6/bin/gmx_app_cyclone_qspi_image <SD directory letter>
+
+7) cp ./5cseba6/bin/gmx_app_5cseba6_core_top.rbf <SD directory letter>
+
+8) cp ./xc7z7020/bin/gmx_app_zynq_qspi_image <SD directory letter>
+
+9) cp ./GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6/software/zImage <SD directory letter>
+
+10) cp <SD directory letter>/gmx_app_zynq_qspi_image <SD directory letter>/BOOT.BIN
+
+
+## da linux
+
+0) scrivere su SD l'immagine CycloneV_Linux_SDCard.img (presente in PCDATA/archive/HARDWARE/Altera/CycloneV_Linux_SDCard.tar.gz)
+
+1) aprire SoC EDS 18.1 usando lo script embedded_command_shell.sh (presente in <intelFPGA directory>/18.1/embedded)
+
+2) cd host_tools/altera/diskutils
+
+3) ./alt-boot-disk-util -p ~/GeminiX/trunk/hdl/app/5cseba6/bin/boot_sd/preloader-mkpimage.bin -a write <SD disk file>
+
+4) cp ./5cseba6/bin/gmx_app_cyclone_qspi_image <SD disk file>
+
+7) cp ./5cseba6/bin/gmx_app_5cseba6_core_top.rbf <SD disk file>
+
+8) cp ./xc7z7020/bin/gmx_app_zynq_qspi_image <SD disk file>
+
+9) cp ./GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/SoC_DevBoard_2.1_5cseba6/software/zImage <SD disk file>
+
+10) cp <SD disk file>/gmx_app_zynq_qspi_image <SD disk file>/BOOT.BIN
+
+####################################################################
+## Configurazione variabili d'ambiente e boot linux
+####################################################################
+
+## da windows
+
+1) copiare il file GeminiX/trunk/hdl/app/SoC_DevBoard_2.1/scripts/procedures/patch_zynq/uEnv.txt nella SD Xilinx
+
+##da scheda
+
+0) aprire i due terminali seriali
+
+1) fermare i boot ed entrare in uboot
+
+## Xilinx
+2) run loadbootenv
+
+3) saveenv
+
+4) run default_bootcmd
+
+## Altera
+
+1) setenv loadfpga "fatload mmc 0 100000 gmx_app_5cseba6_core_top.rbf; go 100000"
+
+2) saveenv
+
+3) run loadfpga
+
+4) boot
+
+
+####################################################################
+## HowTo RESIZE a VDI file
+####################################################################
+
+

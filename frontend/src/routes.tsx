@@ -5,6 +5,7 @@ import { ProjectBoard } from "./features/board/ProjectBoard";
 import { ProjectCalendar } from "./features/calendar/ProjectCalendar";
 import { ProjectConfig } from "./features/config/ProjectConfig";
 import { ProjectSummary } from "./features/summary/ProjectSummary";
+import { Guides } from "./features/guides/Guides";
 
 function RedirectToDefaultTab() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { path: "project/:projectId/summary", element: <ProjectSummary /> },
       { path: "project/:projectId/config", element: <ProjectConfig /> },
       { path: "project/:projectId", element: <RedirectToDefaultTab /> },
+      { path: "guides", element: <Guides /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

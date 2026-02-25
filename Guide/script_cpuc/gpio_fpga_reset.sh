@@ -1,0 +1,19 @@
+#!/bin/bash
+
+sleep 1
+
+#set GPIO as output
+i2cset -y 0 0x20 0x6 0x00
+i2cset -y 0 0x20 0x7 0x00
+
+#set GPIO value to 1
+i2cset -y 0 0x20 0x2 0xff
+
+for i in {1..32}
+do
+    #set GPIO value to 0
+    i2cset -y 0 0x20 0x2 0x9f
+    #set GPIO value to 1
+    i2cset -y 0 0x20 0x2 0xff
+    echo "pulse $i"
+done

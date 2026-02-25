@@ -1,0 +1,40 @@
+-- Registers offsets
+
+-- id register          ->  0x40400100
+    read only, plots the device id 0x55415230
+
+-- control register     ->  0x40400104
+    (31 downto 16) Read/Write command (0x5752 write, 0x5244 read)
+    (15 downto 8)  Number of bytes per instruction (31 to 34)
+    (7 downto 0)   Slave address
+
+-- write data register  ->  0x40400108
+     data to write per single instruction (from MSB to LSB)
+
+-- read data register   ->  0x4040010c
+     data read from single instruction (from MSB to LSB)
+
+-- status register      ->  0x40400110
+     read only, plots BY if the i2c bus is busy, DE if the i2c bus is not busy
+
+
+-- Prcedure to read Temperature sensor and write EEPROM
+
+-- write mux selector to i2c device
+mw 40400004 49324330
+
+-- Temperature sensor
+mw 40400104 52443190
+
+-- EEPROM programming via I2C
+
+  -- write pointer + data
+  mw 40400108 0000bc00
+  mw 40400104 575233ac
+  -- write pointer
+  mw 40400104 575232ac
+  -- read data
+  mw 40400104 524431ac
+  md 40400100
+
+

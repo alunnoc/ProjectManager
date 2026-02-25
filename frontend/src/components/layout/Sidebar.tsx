@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { NavLink, useParams, Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Calendar, Settings, FolderKanban, Plus, Trash2, X, ClipboardList, Pencil } from "lucide-react";
+import { NavLink, useParams, Link, useNavigate, useLocation } from "react-router-dom";
+import { LayoutDashboard, Calendar, Settings, FolderKanban, Plus, Trash2, X, ClipboardList, Pencil, BookOpen } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 
 const navItems = [
@@ -18,6 +18,7 @@ interface SidebarProps {
 export function Sidebar({ open = true, onClose }: SidebarProps) {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { projects, fetchProjects, deleteProject, updateProject } = useAppStore();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -180,6 +181,20 @@ export function Sidebar({ open = true, onClose }: SidebarProps) {
             );
           })}
         </ul>
+        <div className="mt-6 pt-4 border-t border-[var(--border)]">
+          <Link
+            to="/guides"
+            onClick={closeIfMobile}
+            className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors min-h-[44px] touch-manipulation ${
+              location.pathname === "/guides"
+                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                : "text-[var(--accent-soft)] hover:bg-[var(--surface-hover)]"
+            }`}
+          >
+            <BookOpen className="w-4 h-4 shrink-0" />
+            Guide
+          </Link>
+        </div>
         {projectId && (
           <>
             <p className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider px-2 mt-6 mb-2">

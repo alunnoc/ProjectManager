@@ -1,0 +1,42 @@
+#!/bin/bash
+
+if i2cget -y 7 0x21 0x0
+then
+    I2C_BUS=7    
+else
+    I2C_BUS=9
+fi
+
+#set GPIO as output (gpio 0 to 2 set to input)
+i2cset -y $I2C_BUS 0x20 0x6 0x07
+i2cset -y $I2C_BUS 0x20 0x7 0x00
+
+echo "Set GPIO as output"
+i2cget -y $I2C_BUS 0x20 0x6
+i2cget -y $I2C_BUS 0x20 0x7
+
+#set GPIO value to 1
+i2cset -y $I2C_BUS 0x20 0x2 0xff
+i2cset -y $I2C_BUS 0x20 0x3 0xff
+
+echo "Set GPIO value to 1"
+i2cget -y $I2C_BUS 0x20 0x2
+i2cget -y $I2C_BUS 0x20 0x3
+
+#set GPIO value to 0
+i2cset -y $I2C_BUS 0x20 0x2 0x00
+i2cset -y $I2C_BUS 0x20 0x3 0x00
+
+echo "Set GPIO value to 0"
+i2cget -y $I2C_BUS 0x20 0x2
+i2cget -y $I2C_BUS 0x20 0x3
+
+sleep 1
+
+#set GPIO value to 1
+i2cset -y $I2C_BUS 0x20 0x2 0xff
+i2cset -y $I2C_BUS 0x20 0x3 0xff
+
+echo "Set GPIO value to 1"
+i2cget -y $I2C_BUS 0x20 0x2
+i2cget -y $I2C_BUS 0x20 0x3

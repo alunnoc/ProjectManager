@@ -1,0 +1,87 @@
+c0804018: e0e0e0e0 ddr empty, f011f011 ddr full;
+c0804014: head
+
+------------------------/
+-- NETCAT TESTS
+------------------------/
+
+-- PcLinux:  nc -v 192.168.42.110 100
+
+___________
+
+-- DMA RX: dati da PcLinux a GMX:
+___________
+
+  - Uboot:  erase memory space
+            verify connection
+            write dest addr, length, start rx
+            read data, read socket info
+           
+  mw 00200000 00000000 FFFF;
+  md c0804000 14;
+  mw c0804004 00200000; mw c0804008 00002000; mw c080403c 22257a27;
+  md 00200000 100; aa; md c0804000 14;
+  
+  while true; do md 00200000 100; aa; sleep 1; done;
+
+___________ 
+ 
+-- DMA TX: dati da GMX a PcLinux:
+___________
+  
+  -- Uboot:  write data to memory location
+             verify connection
+             write src addr, length, 
+             start tx
+             
+mw 01156000 44434241 FFFF; md 01156000;
+md c0804000 14;
+mw c080401c 01156000; mw c0804020 00002000; mw c0804024 77757a27; mw c0804024 00000000;
+mw c0804024 77757a27; mw c0804024 00000000;
+
+while true; do mw c0804024 77757a27; mw c0804024 00000000; sleep 1; done;
+
+________________________________________________________________________________________________________
+
+------------------------/
+-- BIN TESTS
+------------------------/
+
+- Uboot: run loadfpga;
+         fatload mmc 0 200000 binary_image_D_altera_debug_RX_TX;
+         go 200000;
+
+- PcLinux: 
+
+TCP0: ./networkpeer 192.168.42.109 20001
+TCP1: ./networkpeer 192.168.42.109 30001
+TCP2: ./networkpeer 192.168.42.109 20002
+TCP3: ./networkpeer 192.168.42.109 30002
+UDP1: ./networkpeer 192.168.42.109 34061
+
+(definite nel configuration.c)
+
+-----------------------/
+-- Compilare binari:
+-----------------------/
+
+- cd eth_test; 
+- emacs Make.def;  -- controllare gmx version
+- cd eth_test/test/main_testBB/testport/src
+- emacs testport_task_manager.c  -- settare impostazioni
+- in eth_test comando make socdiversity
+- in eth_test/test/mani_testBB/bin vengono generati i binari 
+
+
+-- make socdiversity: errore path compilatore:
+- locate arm-none-eabi-gcc
+- echo $PATH   -- plot del path_attuale (es. opt/CodeSourcery-arm/Sourcery_G++_Lite/bin)
+- export PATH=/path_attuale/:$PATH
+- echo $PATH   -- plot del path_attuale aggiornato
+- rendere il path aggiornato permanente:
+  copiare export PATH=/path_attuale/:$PATH in /home/usr/.bashrc (alla fine del file)
+- N.B. il comando viene riconosciuto in automatico solo se make socdiversity
+  è dato da user e prima occorre dare i permessi a tutto il path, quindi:
+  sudo chmod 777 -R path/ (es. eth_test)  
+
+

@@ -1,0 +1,53 @@
+C:/WORK/SVN/PLAC-HW/trunk/tools/altera/plac_5cseba5_Quartus_prj/software/spl_bsp
+
+
+*****************************************************************
+ALTERA Quartus Prime procedure - Start processor and program FPGA
+*****************************************************************
+
+- assignments > remove assignments 
+- cd C:/WORK/SVN/PLAC-HW/trunk/tools/altera/plac_5cseba5_Quartus_prj
+- source C:/WORK/SVN/PLAC-HW/trunk/hdl/5cseba5/src/Qsys/gmx_core_arm_if/synthesis/submodules/hps_sdram_p0_parameters.tcl
+- source C:/WORK/SVN/PLAC-HW/trunk/hdl/5cseba5/src/Qsys/gmx_core_arm_if/synthesis/submodules/hps_sdram_p0_pin_assignments.tcl
+	(OPPURE quartus > tools > tlc scripts... molto più facile)
+- run synthesis
+
+
+
+- open SoC EDS 16.1 command shell
+- execute command: bsp-editor.exe
+- file > new HPS BSP > preloader settings directory > select <project>/hps_isw_handoff/<folder>
+- select boot from qspi, qspi offset file = 60000
+- select boot from SD, sd offset = 40000
+- select FAT_SUPPORT
+- FAT_LOAD_PAYLOAD_NAME: u-boot.bin
+- Advanced tab > deselect WATCHDOG_ENABLE and select SDRAM_SCRUBBING
+- click generate
+- click exit
+
+
+- return to SoC EDS 16.1 command shell
+- cd <project>/software/spl_bsp
+- execute command: make
+- execute command: alt-boot-disk-util.exe -p preloader-mkpimage.bin -a write -d <SD directory letter> (e.g.: E )
+- execute command: patch -p0 < PATCH_ALTERA
+- change #define CONFIG_ENV_OFFSET	with (0x00E00000) in uboot-socfpga\include\configs\socfpga_common.h
+- execute command: make uboot
+
+You now have the preloader inside an hidden partition in the SD
+
+to make qspi single image file:
+./altera_merger.sh preloader-mkpimage.bin u-boot.img gmx_app_5cseba6_core_top.rbf > cyclone_qspi_image 
+
+
+- from Quartus > file > Convert Programming File > .rbf > add file > .sof > Generate
+
+- transfer in SD <project>/software/spl_bsp/uboot-socfpga/u-boot.bin and the .rbf file 
+
+- open u-boot shell
+- run command: fatload mmc 0:1 $fpgadata gmx_app_5cseba6_core_top.rbf; fpga load 0 $fpgadata $filesize; run bridge_enable_handoff
+- to enable boot ethernet, run command: mii write 0xd 0x1 0xc03d
+
+( - setenv loadfpga "fatload mmc 0:1 $fpgadata plac_5cseba6_core_top.rbf; fpga load 0 $""{fpgadata} $""{filesize}" )
+
+-  cat preloader-mkpimage.bin uboot-socfpga/u-boot.bin > altera_spi_image.img

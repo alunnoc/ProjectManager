@@ -1,0 +1,48 @@
+How to run Linux on the board
+Start Linux from SD
+Altera
+
+    Start the board and (eventually) interrupt the auto boot
+    Be sure the following env variables are set:
+
+    %> pri ipaddr
+    %> pri ethaddr
+
+
+    In case set it as follow
+
+    %> setenv ipaddr 192.168.89.200
+    %> setenv ethaddr "84:39:BE:52:00:74" 
+
+    Be sure the following env variables are set:
+
+    %> pri bootimage
+    %> pri fdtimage
+
+
+    Be sure they are set to the correct values
+
+    %> setenv bootimage zImage
+    %> setenv fdtimage system_altera.dtb
+
+    Consider the command "mmcload", running "%> pri mmcload" it should return
+
+    mmc rescan;${mmcloadcmd} mmc 0:${mmcloadpart} ${loadaddr} ${bootimage};${mmcloadcmd} mmc 0:${mmcloadpart} ${fdtaddr} ${fdtimage}
+
+    Run mmcload command
+
+    %> run mmcload
+
+
+    The result should be something like:
+
+    reading zImage
+    4870088 bytes read in 276 ms (16.8 MiB/s)
+    reading system_altera.dtb
+    21437 bytes read in 7 ms (2.9 MiB/s)
+
+    Run Linux
+
+    %> run mmcboot
+
+

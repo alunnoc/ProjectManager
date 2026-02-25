@@ -1,0 +1,7 @@
+
+attribute keep: boolean;
+attribute noprune: boolean;
+attribute mark_debug: boolean;
+
+
+attribute noprune of  BYTE_COUNT      : signal is true;

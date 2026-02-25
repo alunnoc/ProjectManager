@@ -1,0 +1,35 @@
+The gcc compilation is mandatory to go on with this step.
+
+$ cd SYSTEM-TEST/trunk
+$ make GEMINIX_ROOT=$(pwd) preparemultienv
+$ cd ..
+
+Copy the compile_ghs.sh script in this directory to SYSTEM-TEST directory
+$ cp <path-in-your-pc>/PAIPL-FW/trunk/test/systemTest/compile_ghs.sh <path-in-your-pc>/SYSTEM-TEST
+$ cd SYSTEM-TEST
+$ chmod 777 compile_ghs.sh
+
+Check/modify in compile_ghs.sh
+- Variable gmx_root (GeminiX trunk)
+- ghssharehost=<USER>@pcdata
+- ghssharedestdir=/tmp/<USER>/GHS
+
+If you want to keep compilation intermediate outputs in pcdata
+$ export KEEPTMP=1
+
+IMPORTANT: Verify that your pcdata user can do 'ssh' to the virtual machine which compiles
+$ ssh <USER>@pcdata
+[pcdata]$ ssh user@192.168.122.17
+(Reply YES if this is the first ssh connection try,
+YES is enaugh to exchange keys and you dont need to type user@192.168.122.17 password too)
+
+Going back to your pc, execute from SYSTEM-TEST directory
+$ bash compile_ghs.sh <args>
+
+
+It is possible to follow compilation log in
+pcdata@/tmp/<USER>/GHS/SYSTEM-TEST/gmx_demo/branches/developers/marta/socket_walkingBit_uipaipl/LOGGA_GHS
+
+The executed script generates the DES binaries.
+After compilation finishes (it can take more or less 10min), the ready-to-use binaries are in
+SYSTEM-TEST/gmx_demo/branches/developers/marta/socket_walkingBit_uipaipl/bin 

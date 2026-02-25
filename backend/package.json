@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "test": "node --import tsx --test src/features/tasks/categories.test.ts"
+    "test": "node --import tsx --test src/features/tasks/categories.test.ts",
+    "seed:guides": "tsx scripts/seed-guides.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

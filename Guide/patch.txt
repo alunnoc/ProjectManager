@@ -1,0 +1,5 @@
+Eseguire patch
+patch -p0 < (patch_to_the_patch)012_rbb.patch
+
+rimuovere patch
+patch -R -p0 < (patch_to_the_patch)012_rbb.patch

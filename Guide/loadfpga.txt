@@ -1,0 +1,9 @@
+DA SD
+fatload mmc 0 100000 $fpgarbf; fpga load 0 100000 700000; run 
+bridge_enable_handoff; sleep 2; mii write 0xd 0x1 0xc03d
+
+DA SPI
+sf probe; sf read 100000 100000 700000; fpga load 0 100000 700000; run 
+bridge_enable_handoff; sleep 2; mii write 0xd 0x1 0xc03d
+
+$fpgarbf = PROJECT.RBF

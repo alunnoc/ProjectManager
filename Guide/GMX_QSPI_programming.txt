@@ -1,0 +1,21 @@
+Programmare le QSPI Memory di GMX, sostituendo anche uboot
+
+A:
+
+fatload mmc 0 100000 plac_ce_zynq_qspi_image_rXXX (che sarebbe il BOOT.bin)
+sf probe; sf erase 0 500000; sf write 100000 0 500000; saveenv;
+
+Mi pare che xilinx non sovrascriva le variabili d'ambiente
+
+
+B:
+
+fatload mmc 0 100000 plac_ce_cyclone_qspi_image_rXXX
+sf probe; sf erase 0 1000000; sf write 100000 0 1000000; saveenv;
+
+per cambiare solo l'RBF 
+    fatload mmc 0 100000 plac_ce_cyclone.rbf
+    sf probe; sf erase 100000 700000;sf write 100000 100000 700000;saveenv;
+
+(il saveenv alla fine salva le variabili d'ambiente dalla RAM alla QSPI,
+quindi non è necessario ri-settare i mac address).

@@ -211,3 +211,27 @@ model DiaryComment {
   diaryEntry   DiaryEntry @relation(fields: [diaryEntryId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
 }
+
+// ============ GUIDE (globali, non legate a progetto) ============
+model Guide {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  steps GuideStep[]
+}
+
+model GuideStep {
+  id       String  @id @default(cuid())
+  guideId String
+  guide   Guide   @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  title   String
+  content String? // testo markdown o istruzioni
+  order   Int     @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([guideId])
+}

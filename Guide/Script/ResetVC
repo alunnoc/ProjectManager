@@ -1,0 +1,33 @@
+setenv rstCtrl "mw XX_0001818 0; mw XX_03fe7e4 ffffffff"
+
+# lockfpga
+mw XX_00003c0 8f338f33; mw XX_03ffc3c 70cc70cc;
+
+# vc
+mw XX_0001824 00000000; mw XX_03fe7d8 ffffffff; mw XX_0001818 4004; mw XX_03fe7e4 ffffbffb; sleep 1; run rstCtrl;
+mw XX_0001818 6004; mw XX_03fe7e4 ffff9ffb; md XX_00018d4 1; run rstCtrl;
+
+# wrDes0
+mw XX_0001824 000000c7; mw XX_03fe7d8 ffffff38; mw XX_0001818 400b; mw XX_03fe7e4 ffffbff4; sleep 1; run rstCtrl;
+mw XX_0001824 0000005c; mw XX_03fe7d8 ffffffa3; mw XX_0001818 400a; mw XX_03fe7e4 ffffbff5; sleep 1; run rstCtrl;
+
+# wrDes1
+mw XX_0001824 0000001a; mw XX_03fe7d8 ffffffe5; mw XX_0001818 4009; mw XX_03fe7e4 ffffbff6; sleep 1; run rstCtrl;
+mw XX_0001824 000000a5; mw XX_03fe7d8 ffffff5a; mw XX_0001818 4008; mw XX_03fe7e4 ffffbff7; sleep 1; run rstCtrl;
+
+# wrDes2
+mw XX_0001824 00000043; mw XX_03fe7d8 ffffffbc; mw XX_0001818 400f; mw XX_03fe7e4 ffffbff0; sleep 1; run rstCtrl;
+mw XX_0001824 00000083; mw XX_03fe7d8 ffffff7c; mw XX_0001818 400e; mw XX_03fe7e4 ffffbff1; sleep 1; run rstCtrl;
+
+# wrDes3
+mw XX_0001824 0000001b; mw XX_03fe7d8 ffffffe4; mw XX_0001818 400d; mw XX_03fe7e4 ffffbff2; sleep 1; run rstCtrl;
+mw XX_0001824 000000f2; mw XX_03fe7d8 ffffff0d; mw XX_0001818 400c; mw XX_03fe7e4 ffffbff3; sleep 1; run rstCtrl;
+
+# wrAppSel
+mw XX_0001824 000000c6; mw XX_03fe7d8 ffffff39; mw XX_0001818 4000; mw XX_03fe7e4 ffffbfff; sleep 1; run rstCtrl;
+mw XX_0001824 000000c6; mw XX_03fe7d8 ffffff39; mw XX_0001818 4001; mw XX_03fe7e4 ffffbffe; sleep 1; run rstCtrl;
+mw XX_0001824 000000c6; mw XX_03fe7d8 ffffff39; mw XX_0001818 4002; mw XX_03fe7e4 ffffbffd; sleep 1; run rstCtrl;
+mw XX_0001824 000000c6; mw XX_03fe7d8 ffffff39; mw XX_0001818 4003; mw XX_03fe7e4 ffffbffc; sleep 1; run rstCtrl;
+
+# lockfpga
+mw XX_00003c0 70cc70cc;  mw XX_03ffc3c 8f338f33

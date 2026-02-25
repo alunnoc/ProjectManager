@@ -1,0 +1,76 @@
+- sul PC che ha internet
+
+echo 1 > /proc/sys/net/ipv4/ip_forward
+iptables -t nat -A POSTROUTING -s 192.168.50.0/24 ! -d 192.168.50.0/24 -j MASQUERADE (la sottorete deve essere la stessa con cui comunicano i 2)
+
+- sul PC in cui vuoi internet
+
+route add default gw 192.168.50.XXX (con XXX quello del PC con internet)
+in /etc/resolv.conf sostituisci con nameserver 172.16.254.254 (oppure con il gateway del pc che ha internet es 192.168.1.254, qui in azienda 172.16.254.254)
+
+
+
+apt install isc-dhcp-server
+apt install tftpd-hpa
+
+
+cp /etc/dhcp/dhcpd.conf /etc/dhcp/dhcpd.conf.ORIG
+
+- copia questo le righe seguenti in un file che chiami dhcpd.conf
+- poi :
+mv dhcpd.conf /etc/dhcp/dhcpd.conf
+service isc-dhcp-server restart
+
+---------------------------INIZIO--------------------------
+#
+# Sample configuration file for ISC dhcpd for Debian
+#
+# Attention: If /etc/ltsp/dhcpd.conf exists, that will be used as
+# configuration file instead of this file.
+#
+#
+
+# The ddns-updates-style parameter controls whether or not the server will
+# attempt to do a DNS update when a lease is confirmed. We default to the
+# behavior of the version 2 packages ('none', since DHCP v2 didn't
+# have support for DDNS.)
+ddns-update-style none;
+
+default-lease-time 0;
+max-lease-time 0;
+
+log-facility local7;
+
+class "soc-xilinx" {
+#  XILINX SOC HAVE (01:) 84:39:be:51:XX:XX; Initial 01: is ethernet request
+   match if substring (hardware, 1, 4) = 84:39:be:51 ;
+}
+
+class "soc-altera" {
+#  ALTERA SOC HAVE (01:) 84:39:be:51:XX:XX; Initial 01: is ethernet request
+   match if substring (hardware, 1, 4) = 84:39:be:52 ;
+}
+
+
+subnet 192.168.30.0 netmask 255.255.255.0 {
+  pool {
+     allow members of "soc-xilinx" ;
+     range 192.168.30.21 192.168.30.21 ;
+     next-server 192.168.30.254 ;
+     filename "gmx_xilinx" ;
+  }
+  pool {
+     allow members of "soc-altera" ;
+     range 192.168.30.22 192.168.30.22 ;
+     next-server 192.168.30.254 ;
+     filename "gmx_altera" ;
+  }
+}
+
+-----------------------------FINE---------------------------------------
+
+- i file del boot vanno in /var/lib/tftpboot
+- devi fare i link simbolici come segue:
+cd  /var/lib/tftpboot
+ln -sf <nome_tuo_file_xilinx> gmx_xilinx
+ln -sf <nome_tuo_file_altera> gmx_altera

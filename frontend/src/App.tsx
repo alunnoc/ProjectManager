@@ -5,6 +5,7 @@ import { ProjectCalendar } from "./features/calendar/ProjectCalendar";
 import { ProjectConfig } from "./features/config/ProjectConfig";
 import { ProjectSummary } from "./features/summary/ProjectSummary";
 import { ProjectSelect } from "./components/ProjectSelect";
+import { Guides } from "./features/guides/Guides";
 
 function RedirectToDefaultTab() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -31,6 +32,7 @@ function App() {
       <Route path="/project/:projectId/summary" element={<WithLayout><ProjectSummary /></WithLayout>} />
       <Route path="/project/:projectId/config" element={<WithLayout><ProjectConfig /></WithLayout>} />
       <Route path="/project/:projectId" element={<WithLayout><RedirectToDefaultTab /></WithLayout>} />
+      <Route path="/guides" element={<WithLayout><Guides /></WithLayout>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

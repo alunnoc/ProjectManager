@@ -1,0 +1,89 @@
+arch=arm
+axibridge=ffd0501c
+axibridge_handoff=0x00000000
+baudrate=115200
+board=socfpga
+board_name=socfpga
+bootargs=console=ttyS0,115200
+bootcmd=run loadfpga; mii write 0x16 0x1 0xc03d;mii write 0x15 0x1 0x803e; run tryDhcp; source 100000
+0
+bootdelay=5
+bootimage=zImage
+bootimagesize=0x600000
+bridge_disable=mw $fpgaintf 0; mw $fpga2sdram 0; go $fpga2sdram_apply; mw $axibridge 0; mw $l3remap 0
+x1 
+bridge_enable_handoff=mw $fpgaintf ${fpgaintf_handoff}; go $fpga2sdram_apply; mw $fpga2sdram ${fpga2s
+dram_handoff}; mw $axibridge ${axibridge_handoff}; mw $l3remap ${l3remap_handoff} 
+bringUpTest=run loadfpga; fatload mmc 0 100000 bringUp_altera.scr; source 100000;
+callscript=if fatload mmc 0:1 $fpgadata $scriptfile;then source $fpgadata; else echo Optional boot sc
+ript not found. Continuing to boot normally; fi;
+chkFlag=if itest *c040001c == 27A27A99; then mw c0400018 D0EE9090; fi;
+chkSync=run chkTime; run chkFlag; mw c0400000 27A27A99; sleep 1;
+chkTime=if itest *c0800024 >= $endTime; then mw c0400018 D0EE9090; fi;
+cpu=armv7
+eth1addr=84:39:BE:52:00:79
+ethact=mii0
+ethaddr=84:39:BE:52:00:78
+fdtaddr=0x00000100
+fdtimage=socfpga.dtb
+fdtimagesize=0x7000
+filesize=0x1000000
+fpga=0
+fpga2sdram=ffc25080
+fpga2sdram_apply=3ff78598
+fpga2sdram_handoff=0x00001f7f
+fpgabit=altera.bin
+fpgadata=0x2000000
+fpgadatasize=0x700000
+fpgaintf=ffd08028
+fpgaintf_handoff=0x00000000
+l3remap=ff800000
+l3remap_handoff=0x00000019
+loadaddr=0x8000
+loadfpga=sf probe; sf read 100000 100000 700000; fpga load 0 100000 700000; run bridge_enable_handoff
+; sleep 2; mii write 0xd 0x1 0xc03d
+loadfpga_sd=fatload mmc 0 100000 $fpgarbf; fpga load 0 100000 700000; run bridge_enable_handoff; slee
+p 2; mii write 0xd 0x1 0xc03d
+loadgmx=run tryDhcp; run trySync; sleep 2; go 200000
+micrel-ksz9021-clk-skew=0xf0f0
+micrel-ksz9021-data-skew=0x0
+mmcboot=setenv bootargs console=ttyS0,115200 root=${mmcroot} rw rootwait;bootz ${loadaddr} - ${fdtadd
+r}
+mmcload=mmc rescan;${mmcloadcmd} mmc 0:${mmcloadpart} ${loadaddr} ${bootimage};${mmcloadcmd} mmc 0:${
+mmcloadpart} ${fdtaddr} ${fdtimage}
+mmcloadcmd=fatload
+mmcloadpart=1
+mmcroot=/dev/mmcblk0p2
+nandboot=setenv bootargs console=ttyS0,115200 root=${nandroot} rw rootfstype=${nandrootfstype};bootz 
+${loadaddr} - ${fdtaddr}
+nandbootimageaddr=0x120000
+nandfdtaddr=0xA0000
+nandload=nand read ${loadaddr} ${nandbootimageaddr} ${bootimagesize};nand read ${fdtaddr} ${nandfdtad
+dr} ${fdtimagesize}
+nandroot=/dev/mtdblock1
+nandrootfstype=jffs2
+netboot=dhcp ${bootimage} ; tftp ${fdtaddr} ${fdtimage} ; run ramboot
+qspi_setup=sf probe; fatload mmc 0 100000 $fpgabit; sf erase 0 1000000; sf write 100000 0 1000000; ru
+n setCheck; run setTrySync; run cleanEnv;
+qspiboot=setenv bootargs console=ttyS0,115200 root=${qspiroot} rw rootfstype=${qspirootfstype};bootz 
+${loadaddr} - ${fdtaddr}
+qspibootimageaddr=0xa0000
+qspifdtaddr=0x50000
+qspiload=sf probe ${qspiloadcs};sf read ${loadaddr} ${qspibootimageaddr} ${bootimagesize};sf read ${f
+dtaddr} ${qspifdtaddr} ${fdtimagesize};
+qspiloadcs=0
+qspiroot=/dev/mtdblock1
+qspirootfstype=jffs2
+ramboot=setenv bootargs console=ttyS0,115200;bootz ${loadaddr} - ${fdtaddr}
+scriptfile=u-boot.scr
+setenv_ethaddr_eeprom=3ff99b39
+soc=socfpga
+stderr=serial
+stdin=serial
+stdout=serial
+tryDhcp=if dhcp 1000000;then echo yes;else run tryDhcp;fi
+trySync=echo Waiting for Node A ...; setexpr startTime *c0800024; mw c0400018 0; setexpr endTime $sta
+rtTime + 1C9C380; while itest *c0400018 != D0EE9090; do run chkSync; done;
+vendor=altera
+verify=n
+
