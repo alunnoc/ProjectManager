@@ -8,7 +8,7 @@ import { AppError } from "../../middleware/errorHandler.js";
  * - Commenti task
  * - Contenuto e commenti resoconti diario
  * - Nome file immagini (task e diario)
- * Utilizza PostgreSQL plainto_tsquery per termini multipli.
+ * - Eventi (call/meeting): nome, note, minuta
  */
 export async function fullTextSearch(req: Request, res: Response, next: NextFunction) {
   try {
@@ -80,9 +80,52 @@ export async function fullTextSearch(req: Request, res: Response, next: NextFunc
       take: 50,
     });
 
+    // Eventi (call/meeting): nome, note, minuta
+    const pattern = `%${q.replace(/'/g, "''")}%`;
+    const eventRows = projectId
+      ? await prisma.$queryRawUnsafe<
+          Array<Record<string, unknown> & { projectId: string; projectName?: string }>
+        >(
+          `SELECT e.id, e."projectId", e.date, e.time, e.type, e.name, e.notes, e."meetingMinutes", e."createdAt",
+                  p.name as "projectName"
+           FROM "ProjectEvent" e
+           JOIN "Project" p ON p.id = e."projectId"
+           WHERE e."projectId" = $1 AND (e.name ILIKE $2 OR e.notes ILIKE $2 OR e."meetingMinutes" ILIKE $2)
+           ORDER BY e.date DESC, e.time ASC NULLS LAST
+           LIMIT 50`,
+          projectId,
+          pattern
+        )
+      : await prisma.$queryRawUnsafe<
+          Array<Record<string, unknown> & { projectId: string; projectName?: string }>
+        >(
+          `SELECT e.id, e."projectId", e.date, e.time, e.type, e.name, e.notes, e."meetingMinutes", e."createdAt",
+                  p.name as "projectName"
+           FROM "ProjectEvent" e
+           JOIN "Project" p ON p.id = e."projectId"
+           WHERE e.name ILIKE $1 OR e.notes ILIKE $1 OR e."meetingMinutes" ILIKE $1
+           ORDER BY e.date DESC, e.time ASC NULLS LAST
+           LIMIT 50`,
+          pattern
+        );
+
+    const events = eventRows.map((r) => ({
+      id: r.id,
+      projectId: r.projectId,
+      date: r.date instanceof Date ? r.date.toISOString().slice(0, 10) : String(r.date).slice(0, 10),
+      time: r.time ?? null,
+      type: r.type,
+      name: r.name,
+      notes: r.notes ?? null,
+      meetingMinutes: r.meetingMinutes ?? null,
+      createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
+      project: { id: r.projectId, name: r.projectName ?? "" },
+    }));
+
     res.json({
       tasks,
       diary: diaryEntries,
+      events,
     });
   } catch (e) {
     next(e);

@@ -1,10 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { X, Video, Users, Calendar } from "lucide-react";
 import { apiGet } from "@/api/client";
 import type { SearchResult } from "@/types";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+
+const EVENT_ICONS: Record<string, typeof Video> = {
+  call: Video,
+  meeting: Users,
+  other: Calendar,
+};
 
 interface GlobalSearchProps {
   onClose: () => void;
@@ -52,7 +58,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
         const data = await apiGet<SearchResult>(`/search?q=${encodeURIComponent(query)}`);
         setResults(data);
       } catch {
-        setResults({ tasks: [], diary: [] });
+        setResults({ tasks: [], diary: [], events: [] });
       } finally {
         setLoading(false);
       }
@@ -91,7 +97,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
           {loading && <p className="text-sm text-[var(--muted)]">Ricerca...</p>}
           {results && !loading && (
             <>
-              {results.tasks.length === 0 && results.diary.length === 0 && (
+              {results.tasks.length === 0 && results.diary.length === 0 && (results.events?.length ?? 0) === 0 && (
                 <p className="text-sm text-[var(--muted)]">Nessun risultato</p>
               )}
               {results.tasks.length > 0 && (
@@ -125,7 +131,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
                 </section>
               )}
               {results.diary.length > 0 && (
-                <section>
+                <section className="mb-6">
                   <h3 className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
                     Diario
                   </h3>
@@ -151,6 +157,48 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
                         </Link>
                       </li>
                     ))}
+                  </ul>
+                </section>
+              )}
+              {(results.events?.length ?? 0) > 0 && (
+                <section>
+                  <h3 className="text-xs font-semibold text-[var(--muted)] uppercase tracking-wider mb-2">
+                    Eventi (call / meeting)
+                  </h3>
+                  <ul className="space-y-2">
+                    {results.events.map((ev) => {
+                      const Icon = EVENT_ICONS[ev.type] ?? Calendar;
+                      return (
+                        <li key={ev.id}>
+                          <Link
+                            to={`/project/${ev.projectId}/calendar`}
+                            onClick={onClose}
+                            className="block p-3 rounded-lg bg-[var(--surface-hover)] hover:ring-2 ring-indigo-400 transition-all"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Icon className="w-4 h-4 text-sky-500 shrink-0" />
+                              <span className="font-medium text-[var(--accent)]">
+                                <Highlight text={ev.name} query={query} />
+                              </span>
+                            </div>
+                            {(ev.notes || ev.meetingMinutes) && (
+                              <p className="text-sm text-[var(--muted)] mt-1 line-clamp-2">
+                                <Highlight
+                                  text={(ev.notes || ev.meetingMinutes || "").slice(0, 150)}
+                                  query={query}
+                                />
+                                {(ev.notes?.length ?? 0) + (ev.meetingMinutes?.length ?? 0) > 150 ? "…" : ""}
+                              </p>
+                            )}
+                            <p className="text-xs text-[var(--muted)] mt-1">
+                              {(ev as { project?: { name: string } }).project?.name ?? ev.projectId} ·{" "}
+                              {format(new Date(ev.date), "d MMM yyyy", { locale: it })}
+                              {ev.time ? ` ${ev.time}` : ""}
+                            </p>
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </section>
               )}

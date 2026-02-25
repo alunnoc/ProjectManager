@@ -241,7 +241,7 @@ export function ProjectCalendar() {
   const [editingEvent, setEditingEvent] = useState<ProjectEvent | null>(null);
   const [savingEvent, setSavingEvent] = useState(false);
   const [eventError, setEventError] = useState<string | null>(null);
-  const [eventForm, setEventForm] = useState({ date: "", time: "", type: "meeting" as string, name: "", notes: "" });
+  const [eventForm, setEventForm] = useState({ date: "", time: "", type: "meeting" as string, name: "", notes: "", meetingMinutes: "" });
   const [showDiaryForm, setShowDiaryForm] = useState(false);
   const [diaryForm, setDiaryForm] = useState({ date: "", content: "" });
   const [savingDiary, setSavingDiary] = useState(false);
@@ -260,20 +260,23 @@ export function ProjectCalendar() {
   useEffect(() => {
     if (!projectId) return;
     setLoadingDays(true);
-    Promise.all([
-      apiGet<{ dates: string[] }>(
-        `/projects/${projectId}/diary/calendar-days?year=${currentMonth.getFullYear()}&month=${currentMonth.getMonth() + 1}`
-      ),
-      apiGet<{ dates: string[] }>(
-        `/projects/${projectId}/events/calendar-days?year=${currentMonth.getFullYear()}&month=${currentMonth.getMonth() + 1}`
-      ),
-    ])
-      .then(([diary, events]) => {
-        setDaysWithEntries(diary.dates);
-        setDaysWithEvents(events.dates);
-      })
-      .catch(console.error)
-      .finally(() => setLoadingDays(false));
+    let done = 0;
+    const checkDone = () => {
+      done += 1;
+      if (done === 2) setLoadingDays(false);
+    };
+    apiGet<{ dates: string[] }>(
+      `/projects/${projectId}/diary/calendar-days?year=${currentMonth.getFullYear()}&month=${currentMonth.getMonth() + 1}`
+    )
+      .then((diary) => { setDaysWithEntries(diary.dates); })
+      .catch((e) => { console.error(e); setDaysWithEntries([]); })
+      .finally(checkDone);
+    apiGet<{ dates: string[] }>(
+      `/projects/${projectId}/events/calendar-days?year=${currentMonth.getFullYear()}&month=${currentMonth.getMonth() + 1}`
+    )
+      .then((events) => { setDaysWithEvents(events.dates); })
+      .catch((e) => { console.error(e); setDaysWithEvents([]); })
+      .finally(checkDone);
   }, [projectId, currentMonth.getFullYear(), currentMonth.getMonth()]);
 
   useEffect(() => {
@@ -284,16 +287,19 @@ export function ProjectCalendar() {
     }
     setLoadingContent(true);
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    Promise.all([
-      apiGet<DiaryEntry[]>(`/projects/${projectId}/diary/by-date?date=${dateStr}`),
-      apiGet<ProjectEvent[]>(`/projects/${projectId}/events/by-date?date=${dateStr}`),
-    ])
-      .then(([entries, events]) => {
-        setEntriesForDay(entries);
-        setEventsForDay(events);
-      })
-      .catch(console.error)
-      .finally(() => setLoadingContent(false));
+    let done = 0;
+    const checkDone = () => {
+      done += 1;
+      if (done === 2) setLoadingContent(false);
+    };
+    apiGet<DiaryEntry[]>(`/projects/${projectId}/diary/by-date?date=${dateStr}`)
+      .then((entries) => { setEntriesForDay(entries); })
+      .catch((e) => { console.error(e); setEntriesForDay([]); })
+      .finally(checkDone);
+    apiGet<ProjectEvent[]>(`/projects/${projectId}/events/by-date?date=${dateStr}`)
+      .then((events) => { setEventsForDay(events); })
+      .catch((e) => { console.error(e); setEventsForDay([]); })
+      .finally(checkDone);
   }, [projectId, selectedDate?.toISOString()]);
 
   useEffect(() => {
@@ -307,12 +313,12 @@ export function ProjectCalendar() {
     if (!projectId || !selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
     try {
-      const [entries, events] = await Promise.all([
+      const [entries, events] = await Promise.allSettled([
         apiGet<DiaryEntry[]>(`/projects/${projectId}/diary/by-date?date=${dateStr}`),
         apiGet<ProjectEvent[]>(`/projects/${projectId}/events/by-date?date=${dateStr}`),
       ]);
-      setEntriesForDay(entries);
-      setEventsForDay(events);
+      setEntriesForDay(entries.status === "fulfilled" ? entries.value : []);
+      setEventsForDay(events.status === "fulfilled" ? events.value : []);
     } catch (e) {
       console.error(e);
     }
@@ -321,12 +327,12 @@ export function ProjectCalendar() {
   const refetchCalendarDays = async () => {
     if (!projectId) return;
     try {
-      const [diary, events] = await Promise.all([
+      const [diary, events] = await Promise.allSettled([
         apiGet<{ dates: string[] }>(`/projects/${projectId}/diary/calendar-days?year=${currentMonth.getFullYear()}&month=${currentMonth.getMonth() + 1}`),
         apiGet<{ dates: string[] }>(`/projects/${projectId}/events/calendar-days?year=${currentMonth.getFullYear()}&month=${currentMonth.getMonth() + 1}`),
       ]);
-      setDaysWithEntries(diary.dates);
-      setDaysWithEvents(events.dates);
+      setDaysWithEntries(diary.status === "fulfilled" ? diary.value.dates : []);
+      setDaysWithEvents(events.status === "fulfilled" ? events.value.dates : []);
     } catch (e) {
       console.error(e);
     }
@@ -350,6 +356,7 @@ export function ProjectCalendar() {
       type: "meeting",
       name: "",
       notes: "",
+      meetingMinutes: "",
     }));
     setShowEventForm(true);
   };
@@ -362,6 +369,7 @@ export function ProjectCalendar() {
       type: ev.type,
       name: ev.name,
       notes: ev.notes ?? "",
+      meetingMinutes: ev.meetingMinutes ?? "",
     });
     setEditingEvent(ev);
     setShowEventForm(true);
@@ -486,6 +494,7 @@ export function ProjectCalendar() {
         type: eventForm.type,
         name,
         notes: eventForm.notes.trim() || null,
+        meetingMinutes: eventForm.meetingMinutes.trim() || (editingEvent ? null : undefined),
       };
       if (editingEvent) {
         await apiPatch(`/projects/${projectId}/events/${editingEvent.id}`, payload);
@@ -617,6 +626,12 @@ export function ProjectCalendar() {
                                     </div>
                                     {ev.notes && (
                                       <p className="mt-2 text-sm text-[var(--accent-soft)] whitespace-pre-wrap">{ev.notes}</p>
+                                    )}
+                                    {ev.meetingMinutes && (
+                                      <div className="mt-2 pt-2 border-t border-sky-200/50 dark:border-sky-800/50">
+                                        <p className="text-xs font-medium text-sky-600 dark:text-sky-400 mb-1">Minuta</p>
+                                        <p className="text-sm text-[var(--accent-soft)] whitespace-pre-wrap">{ev.meetingMinutes}</p>
+                                      </div>
                                     )}
                                   </div>
                                   <div className="flex items-center gap-1 shrink-0">
@@ -892,9 +907,19 @@ export function ProjectCalendar() {
                 <textarea
                   value={eventForm.notes}
                   onChange={(e) => setEventForm((f) => ({ ...f, notes: e.target.value }))}
-                  rows={3}
-                  placeholder="Note sull'evento"
+                  rows={2}
+                  placeholder="Note brevi sull'evento"
                   className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] resize-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-[var(--muted)] mb-1">Minuta / Appunti della riunione</label>
+                <textarea
+                  value={eventForm.meetingMinutes}
+                  onChange={(e) => setEventForm((f) => ({ ...f, meetingMinutes: e.target.value }))}
+                  rows={5}
+                  placeholder="Appunti presi durante la call o meeting..."
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--accent)] placeholder:text-[var(--muted)] resize-none"
                 />
               </div>
               <div className="flex gap-2 pt-2">

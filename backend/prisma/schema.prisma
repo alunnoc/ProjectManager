@@ -174,8 +174,9 @@ model ProjectEvent {
   time      String?  // "HH:mm" opzionale
   type      String   // call | meeting | other
   name      String
-  notes     String?
-  createdAt DateTime @default(now())
+  notes           String?
+  meetingMinutes  String?  // minuta / appunti della riunione
+  createdAt       DateTime @default(now())
 
   @@index([projectId])
   @@index([date])

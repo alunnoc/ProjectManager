@@ -114,12 +114,14 @@ export interface ProjectEvent {
   type: string; // call | meeting | other
   name: string;
   notes: string | null;
+  meetingMinutes?: string | null;
   createdAt: string;
 }
 
 export interface SearchResult {
   tasks: Task[];
   diary: DiaryEntry[];
+  events: ProjectEvent[];
 }
 
 export interface ProjectConfigSection {
