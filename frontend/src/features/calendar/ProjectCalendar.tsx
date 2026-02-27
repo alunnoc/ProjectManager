@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { DayPicker } from "react-day-picker";
 import { apiGet, apiPost, apiPatch, apiDelete, apiUpload, uploadsUrl } from "@/api/client";
 import type { DiaryEntry, ProjectEvent } from "@/types";
@@ -228,8 +228,13 @@ function DiaryEntryCard({
 
 export function ProjectCalendar() {
   const { projectId } = useParams<{ projectId: string }>();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [searchParams] = useSearchParams();
+  const dateFromUrl = searchParams.get("date");
+  const initialDate = dateFromUrl && /^\d{4}-\d{2}-\d{2}$/.test(dateFromUrl)
+    ? new Date(dateFromUrl)
+    : undefined;
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
+  const [currentMonth, setCurrentMonth] = useState(initialDate ?? new Date());
   const [daysWithEntries, setDaysWithEntries] = useState<string[]>([]);
   const [daysWithEvents, setDaysWithEvents] = useState<string[]>([]);
   const [entriesForDay, setEntriesForDay] = useState<DiaryEntry[]>([]);

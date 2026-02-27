@@ -21,6 +21,7 @@ import { summaryRouter } from "./features/summary/routes.js";
 import { deliverablesRouter } from "./features/deliverables/routes.js";
 import { eventsRouter } from "./features/events/routes.js";
 import { searchRouter } from "./features/search/routes.js";
+import { calendarRouter } from "./features/calendar/routes.js";
 import { guidesRouter } from "./features/guides/routes.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -58,6 +59,7 @@ app.use("/api/projects/:projectId/deliverables", deliverablesRouter);
 app.use("/api/projects/:projectId/events", eventsRouter);
 app.use("/api/projects/:projectId", configRouter);
 app.use("/api/search", searchRouter);
+app.use("/api/calendar", calendarRouter);
 app.use("/api/guides", guidesRouter);
 
 // Health check

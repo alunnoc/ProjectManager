@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, FolderKanban, Trash2, Calendar, ListTodo } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
+import { GlobalCalendar } from "@/features/calendar/GlobalCalendar";
 import { apiGet } from "@/api/client";
 import type { ProjectEvent } from "@/types";
 import { format } from "date-fns";
@@ -75,7 +76,8 @@ export function ProjectSelect() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto w-full">
+    <div className="max-w-6xl mx-auto w-full space-y-12">
+      <div className="max-w-2xl">
       <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 mb-4 md:mb-6">
         <h2 className="text-xl md:text-2xl font-semibold text-[var(--accent)]">
           I tuoi progetti
@@ -195,6 +197,13 @@ export function ProjectSelect() {
             );
           })}
         </ul>
+      )}
+      </div>
+
+      {projects.length > 0 && (
+        <section className="pt-8 border-t border-[var(--border)]">
+          <GlobalCalendar />
+        </section>
       )}
     </div>
   );
