@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, useParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { LayoutDashboard, Calendar, Settings, FolderKanban, Plus, Trash2, X, ClipboardList, Pencil, BookOpen } from "lucide-react";
+import { LayoutDashboard, Calendar, Settings, FolderKanban, Plus, Trash2, X, ClipboardList, Pencil, BookOpen, StickyNote } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 
 const navItems = [
   { to: "summary", label: "Riepilogo", icon: ClipboardList },
   { to: "board", label: "Board", icon: LayoutDashboard },
   { to: "calendar", label: "Calendario", icon: Calendar },
+  { to: "notes", label: "Appunti", icon: StickyNote },
   { to: "config", label: "Configurazione", icon: Settings },
 ];
 

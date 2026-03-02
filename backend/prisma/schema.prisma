@@ -23,6 +23,7 @@ model Project {
   events         ProjectEvent[]
   configSections ProjectConfigSection[]
   projectLinks   ProjectLink[]
+  notes          ProjectNote[]
   phases         ProjectPhase[]
   workPackages   WorkPackage[]
   deliverables   ProjectDeliverable[]
@@ -86,6 +87,19 @@ model ProjectDeliverable {
   @@index([projectId])
   @@index([phaseId])
   @@index([workPackageId])
+}
+
+// ============ APPUNTI PROGETTO ============
+model ProjectNote {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String   // titolo del blocco (es. "Idee", "Da fare", "Riferimenti")
+  content   String?  @db.Text
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
 }
 
 // ============ CONFIGURAZIONE PROGETTO (sezioni + link) ============

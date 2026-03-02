@@ -4,6 +4,7 @@ import { ProjectSelect } from "./components/ProjectSelect";
 import { ProjectBoard } from "./features/board/ProjectBoard";
 import { ProjectCalendar } from "./features/calendar/ProjectCalendar";
 import { ProjectConfig } from "./features/config/ProjectConfig";
+import { ProjectNotes } from "./features/notes/ProjectNotes";
 import { ProjectSummary } from "./features/summary/ProjectSummary";
 import { Guides } from "./features/guides/Guides";
 
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
       { path: "project/:projectId/board", element: <ProjectBoard /> },
       { path: "project/:projectId/diary", element: <RedirectDiaryToCalendar /> },
       { path: "project/:projectId/calendar", element: <ProjectCalendar /> },
+      { path: "project/:projectId/notes", element: <ProjectNotes /> },
       { path: "project/:projectId/summary", element: <ProjectSummary /> },
       { path: "project/:projectId/config", element: <ProjectConfig /> },
       { path: "project/:projectId", element: <RedirectToDefaultTab /> },
