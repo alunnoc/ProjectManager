@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/api/client";
 import { StickyNote, Plus, Pencil, Trash2, Check, X } from "lucide-react";
@@ -199,6 +199,8 @@ function NoteCard({ note, projectId, onUpdate, onDelete }: NoteCardProps) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content ?? "");
   const [saving, setSaving] = useState(false);
+  const cardRef = useRef<HTMLElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     setTitle(note.title);
@@ -225,12 +227,14 @@ function NoteCard({ note, projectId, onUpdate, onDelete }: NoteCardProps) {
     }
   };
 
-  const handleBlur = () => {
-    if (isEditing) handleSave();
+  const handleBlur = (e: React.FocusEvent) => {
+    const next = e.relatedTarget as Node | null;
+    if (next && cardRef.current?.contains(next)) return;
+    handleSave();
   };
 
   return (
-    <article className="rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-900/10 shadow-sm overflow-hidden min-h-[180px] flex flex-col group">
+    <article ref={cardRef} className="rounded-2xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/60 dark:bg-amber-900/10 shadow-sm overflow-hidden min-h-[180px] flex flex-col group">
       <div className="p-4 flex-1 flex flex-col min-h-0">
         <div className="flex items-start justify-between gap-2 mb-2">
           {isEditing ? (
@@ -239,7 +243,12 @@ function NoteCard({ note, projectId, onUpdate, onDelete }: NoteCardProps) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={handleBlur}
-              onKeyDown={(e) => e.key === "Enter" && handleSave()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  textareaRef.current?.focus();
+                }
+              }}
               className="flex-1 px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-700 bg-[var(--surface)] text-[var(--accent)] font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
               autoFocus
             />
@@ -281,6 +290,7 @@ function NoteCard({ note, projectId, onUpdate, onDelete }: NoteCardProps) {
         </div>
         {isEditing ? (
           <textarea
+            ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onBlur={handleBlur}
