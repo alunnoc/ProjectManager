@@ -22,11 +22,11 @@ const updateSectionSchema = z.object({
 
 const createLinkSchema = z.object({
   label: z.string().min(1).max(200),
-  url: z.string().url().optional().or(z.literal("")),
+  url: z.string().max(2000).optional().or(z.literal("")),
 });
 const updateLinkSchema = z.object({
   label: z.string().min(1).max(200).optional(),
-  url: z.string().url().optional().nullable().or(z.literal("")),
+  url: z.string().max(2000).optional().nullable().or(z.literal("")),
 });
 
 // Opzioni tipo sezione (anche per API se servisse)

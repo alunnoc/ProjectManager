@@ -242,6 +242,7 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
   const [formUrl, setFormUrl] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const links = section.links ?? [];
 
@@ -250,11 +251,13 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
     setFormUrl("");
     setShowForm(false);
     setEditingId(null);
+    setError(null);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formLabel.trim() || saving) return;
+    setError(null);
     setSaving(true);
     try {
       await apiPost(`/projects/${projectId}/sections/${section.id}/links`, {
@@ -264,6 +267,7 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
       resetForm();
       onUpdate();
     } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossibile salvare il link.");
       console.error(err);
     } finally {
       setSaving(false);
@@ -271,6 +275,7 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
   };
 
   const startEdit = (link: ProjectLink) => {
+    setError(null);
     setEditingId(link.id);
     setFormLabel(link.label);
     setFormUrl(link.url ?? "");
@@ -279,6 +284,7 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingId || !formLabel.trim() || saving) return;
+    setError(null);
     setSaving(true);
     try {
       await apiPatch(`/projects/${projectId}/sections/${section.id}/links/${editingId}`, {
@@ -288,6 +294,7 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
       resetForm();
       onUpdate();
     } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossibile aggiornare il link.");
       console.error(err);
     } finally {
       setSaving(false);
@@ -312,7 +319,7 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
           {!showForm && !editingId && (
             <button
               type="button"
-              onClick={() => setShowForm(true)}
+              onClick={() => { setShowForm(true); setError(null); }}
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
             >
               <Plus className="w-4 h-4" />
@@ -332,6 +339,11 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
       <div className="p-6 space-y-4">
         {showForm && (
           <form onSubmit={handleCreate} className="p-4 rounded-xl bg-[var(--surface-hover)]/50 border border-[var(--border)] space-y-3">
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                {error}
+              </p>
+            )}
             <div>
               <label className="block text-xs font-medium text-[var(--muted)] mb-1">Etichetta</label>
               <input
@@ -346,7 +358,7 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
             <div>
               <label className="block text-xs font-medium text-[var(--muted)] mb-1">URL (opzionale)</label>
               <input
-                type="url"
+                type="text"
                 value={formUrl}
                 onChange={(e) => setFormUrl(e.target.value)}
                 placeholder="https://..."
@@ -373,6 +385,11 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
             <li key={link.id}>
               {editingId === link.id ? (
                 <form onSubmit={handleUpdate} className="p-4 rounded-xl bg-[var(--surface-hover)]/50 border border-[var(--border)] space-y-3">
+                  {error && (
+                    <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                      {error}
+                    </p>
+                  )}
                   <input
                     type="text"
                     value={formLabel}
@@ -382,7 +399,7 @@ function SectionContent({ projectId, section, onDeleteSection, onUpdate }: Secti
                     required
                   />
                   <input
-                    type="url"
+                    type="text"
                     value={formUrl}
                     onChange={(e) => setFormUrl(e.target.value)}
                     placeholder="URL (opzionale)"
